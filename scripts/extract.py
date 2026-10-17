@@ -36,9 +36,14 @@ RE_COMMAND = re.compile(r"<command-name>\s*(/?[^<\s]+)\s*</command-name>")
 RE_COMMAND_ARGS = re.compile(r"<command-args>(.*?)</command-args>", re.S)
 RE_BASH_INPUT = re.compile(r"<bash-input>(.*?)</bash-input>", re.S)
 RE_ANY_TAG_BLOCK = re.compile(r"<(local-command-stdout|local-command-stderr|bash-stdout|bash-stderr|command-message|command-args|command-name)>.*?</\1>", re.S)
-RE_TS = re.compile(r'"timestamp":"([^"]+)"')
-RE_CWD = re.compile(r'"cwd":"((?:[^"\\]|\\.)*)"')
-RE_ENTRY = re.compile(r'"entrypoint":"([^"]+)"')
+RE_TS = re.compile(r'"timestamp":\s?"([^"]+)"')
+RE_CWD = re.compile(r'"cwd":\s?"((?:[^"\\]|\\.)*)"')
+RE_ENTRY = re.compile(r'"entrypoint":\s?"([^"]+)"')
+
+
+def has(line, key, value):
+    """Fast substring test for "key":value in a JSON line, with or without a space after the colon."""
+    return ('"%s":%s' % (key, value)) in line or ('"%s": %s' % (key, value)) in line
 
 RE_SKILL_BLOCK = re.compile(r"<skill\b[^>]*>.*?(</skill>|$)", re.S)
 
@@ -297,15 +302,15 @@ def parse_session(path, folder):
     assistant_since_user = False
     with open(path, "r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
-            is_user = '"type":"user"' in line
-            is_asst = (not is_user) and '"type":"assistant"' in line
+            is_user = has(line, "type", '"user"')
+            is_asst = (not is_user) and has(line, "type", '"assistant"')
             if not (is_user or is_asst):
-                if s["cwd"] is None and '"cwd":"' in line:
+                if s["cwd"] is None and '"cwd":' in line:
                     m = RE_CWD.search(line)
                     if m:
                         s["cwd"] = m.group(1)
                 continue
-            if '"isSidechain":true' in line:
+            if has(line, "isSidechain", "true"):
                 continue
             m = RE_TS.search(line)
             ts = parse_ts(m.group(1)) if m else None
@@ -321,7 +326,7 @@ def parse_session(path, folder):
                     s["entry"] = m.group(1)
             if is_user and '"tool_result"' in line:
                 # Large tool output lines: only parse when they carry an error or a rejection.
-                if '"is_error":true' not in line:
+                if not has(line, "is_error", "true"):
                     continue
                 try:
                     o = json.loads(line)
@@ -499,13 +504,14 @@ def main(argv=None):
     analysed = [s for s in sessions if s["turns"] >= args.min_turns and s["start"]]
     analysed.sort(key=lambda s: s["start"])
 
-    # ---- templates: a message that opens with the same 120 characters in 3+ sessions is an app prompt,
-    # a saved template or a habitual paste. Reported on its own, kept out of the clustering below.
+    # ---- templates: a long message (150+ chars) that opens with the same 120 characters in 3+ sessions is an
+    # app prompt, a saved template or a habitual paste. Reported on its own, kept out of the clustering below.
+    # Short messages typed again and again stay in: they are exactly the habits worth counting.
     prefix_sessions = collections.defaultdict(set)
     for si, s in enumerate(analysed):
         for m in s["msgs"]:
             m["template"] = False
-            if m["kind"] == "human" and len(m["text"]) >= 40:
+            if m["kind"] == "human" and len(m["text"]) >= 150:
                 m["pfx"] = " ".join(m["text"].lower().split())[:120]
                 prefix_sessions[m["pfx"]].add(si)
     templates = collections.OrderedDict()
