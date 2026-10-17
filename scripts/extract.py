@@ -454,18 +454,30 @@ def read_cleanup_days(home):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="self-improve: digest your Claude Code history (read-only, local).")
-    ap.add_argument("--out", required=True, help="output folder, e.g. ~/claude-improve/2026-10-17/data")
+    ap.add_argument("--report-root", default=None, help="writes into <root>/<YYYY-MM-DD>/data (e.g. ~/claude-improve)")
+    ap.add_argument("--out", default=None, help="exact output folder (instead of --report-root)")
     ap.add_argument("--projects-dir", default="~/.claude/projects")
     ap.add_argument("--project", default=None, help="only sessions started in this folder (path)")
     ap.add_argument("--min-turns", type=int, default=3)
     ap.add_argument("--max-chars", type=int, default=120000)
-    ap.add_argument("--compare", default=None, help="previous findings.json to re-check")
+    ap.add_argument("--compare", default="auto", help="previous findings.json to re-check; 'auto' = newest earlier report under --report-root; 'none' to skip")
     args = ap.parse_args(argv)
 
     t_start = time.time()
     home = os.path.expanduser("~")
     root = os.path.expanduser(args.projects_dir)
-    out = os.path.expanduser(args.out)
+    today = dt.date.today().isoformat()
+    if args.out:
+        out = os.path.expanduser(args.out)
+    elif args.report_root:
+        out = os.path.join(os.path.expanduser(args.report_root), today, "data")
+    else:
+        ap.error("give --report-root or --out")
+    report_dir = os.path.dirname(out.rstrip("/"))
+    if args.compare == "auto":
+        args.compare = find_previous(os.path.dirname(report_dir), os.path.basename(report_dir))
+    elif args.compare == "none":
+        args.compare = None
     if not os.path.isdir(root):
         print("No Claude Code history found at %s" % root, file=sys.stderr)
         return 2
@@ -621,7 +633,7 @@ def main(argv=None):
 
     by_project = collections.OrderedDict()
     for s in analysed:
-        p = by_project.setdefault(s["project"], {"sessions": 0, "turns": 0, "minutes": 0.0, "first": day(s["start"]), "last": day(s["end"]),
+        p = by_project.setdefault(s["project"], {"path": s["cwd"], "sessions": 0, "turns": 0, "minutes": 0.0, "first": day(s["start"]), "last": day(s["end"]),
                                                   "corrections": 0, "interrupts": 0, "errors": 0, "rejections": 0, "delegated": 0})
         p["sessions"] += 1
         p["turns"] += s["turns"]
@@ -695,7 +707,22 @@ def main(argv=None):
                                              "corrections", "interrupts", "tool_errors", "cleanupPeriodDays", "history_warning",
                                              "digest_chars", "seconds")}, ensure_ascii=False))
     print("digest: %s" % os.path.join(out, "digest.md"))
+    print("report folder: %s" % report_dir)
+    print("previous report compared: %s" % (args.compare or "none"))
     return 0
+
+
+def find_previous(base, current_name):
+    """Newest <base>/<YYYY-MM-DD>/findings.json older than the current report folder, or None."""
+    try:
+        names = sorted(n for n in os.listdir(base) if re.match(r"^\d{4}-\d{2}-\d{2}$", n) and n < current_name)
+    except Exception:
+        return None
+    for n in reversed(names):
+        p = os.path.join(base, n, "findings.json")
+        if os.path.isfile(p):
+            return p
+    return None
 
 
 def compare_findings(path, analysed, corrections, err_groups):
@@ -817,10 +844,10 @@ def build_digest(stats, analysed, tasks, ctx, corrections, errors, compare, chun
             S.append("- [%s] %s: before %d (%.2f/wk), after %d (%.2f/wk) → **%s**\n" % (
                 r["section"], r["title"], r["before"], r["per_week_before"], r["after"], r["per_week_after"], r["status"]))
 
-    S.append("\n## Projects\n\n| project | sessions | active h | first | last | corrections | interrupts | tool errors | rejected calls |\n|---|---|---|---|---|---|---|---|---|\n")
+    S.append("\n## Projects\n\n| project | path | sessions | active h | first | last | corrections | interrupts | tool errors | rejected calls |\n|---|---|---|---|---|---|---|---|---|---|\n")
     for p, v in sorted(stats["by_project"].items(), key=lambda kv: -kv[1]["sessions"]):
-        S.append("| %s | %d | %.1f | %s | %s | %d | %d | %d | %d |\n" % (p, v["sessions"], v["minutes"] / 60, v["first"], v["last"],
-                                                                     v["corrections"], v["interrupts"], v["errors"], v["rejections"]))
+        S.append("| %s | %s | %d | %.1f | %s | %s | %d | %d | %d | %d |\n" % (p, v.get("path") or "?", v["sessions"], v["minutes"] / 60, v["first"], v["last"],
+                                                                          v["corrections"], v["interrupts"], v["errors"], v["rejections"]))
 
     def task_block(title, rows, n, show_file=False):
         out = ["\n## %s\n" % title]
