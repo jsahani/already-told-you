@@ -66,7 +66,7 @@ def quotes_md(item):
 def render_md(f, st):
     L = []
     L.append("# Your Claude Code, reviewed\n\n")
-    L.append("*%s · %s · generated locally by self-improve on %s. Nothing left your computer.*\n\n" % (
+    L.append("*%s · %s · made on your computer by self-improve on %s. Dry run: nothing was installed or changed.*\n\n" % (
         f.get("scope") or st.get("scope", "all projects"), "%s → %s" % (st.get("analysed_from"), st.get("analysed_to")), f.get("generated")))
     if f.get("headline"):
         L.append("**%s**\n\n" % f["headline"])
@@ -159,8 +159,8 @@ h1{font-size:56px;line-height:1.05;letter-spacing:-.03em;margin:10px 0 14px;font
 .stat.hl span{color:#b9b9c4}
 .warn{background:#fff7e6;border:1px solid #f6d58e;color:#6b4a00;border-radius:14px;padding:14px 18px;margin:14px 0}
 .ok{background:#eefaf4;border:1px solid #b6e6cc;color:#1e5c3d;border-radius:14px;padding:12px 18px;margin:14px 0;font-size:15px}
-nav{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0 8px}
-nav a{text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-weight:600;font-size:15px}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:26px 0 8px}
+nav a{text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:9px 12px;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 nav a i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;color:#fff;font-size:12px;margin-right:8px}
 section{margin-top:56px}
 .sh{display:flex;align-items:center;gap:16px;margin-bottom:6px}
@@ -198,8 +198,16 @@ ol.steps li{margin:4px 0}
 .next code span{color:#9b9ba8}
 footer{margin-top:28px;color:var(--muted);font-size:14px;text-align:center}
 .empty{color:var(--muted);font-style:italic;margin-left:62px}
-@media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.card{grid-template-columns:1fr}.since{grid-template-columns:1fr}h1{font-size:40px}}
+@media (max-width:900px){nav{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}.card{grid-template-columns:1fr}.since{grid-template-columns:1fr}h1{font-size:40px}}
 """
+
+
+def big(v):
+    """Whole numbers for the big stat cards once a value reaches 10 (143.7 -> 144)."""
+    x = num(v, None)
+    if x is None:
+        return v
+    return "%d" % round(x) if x >= 10 else ("%.1f" % x).rstrip("0").rstrip(".")
 
 
 def e(s):
@@ -258,12 +266,12 @@ def render_html(f, st):
     if f.get("headline"):
         H.append('<p class="lede">%s</p>' % e(f["headline"]))
     H.append('<div class="meta"><span class="pill">%s</span><span class="pill">%s → %s</span><span class="pill">%s projects</span>'
-             '<span class="pill">read locally · nothing uploaded</span></div>' % (
+             '<span class="pill">made on your computer</span></div>' % (
                  e(f.get("scope") or st.get("scope", "all projects")), e(st.get("analysed_from")), e(st.get("analysed_to")), e(st.get("projects"))))
     H.append('<div class="stats">')
     for val, label, hl in (
             (st.get("sessions_analysed"), "sessions analysed (of %s)" % st.get("sessions_total"), False),
-            (st.get("active_hours"), "hours working with Claude", False),
+            (big(st.get("active_hours")), "hours working with Claude", False),
             (st.get("corrections"), "times you corrected Claude", False),
             (drafted, "skills drafted for you", False),
             (fmt_hours(saved_hours(f)), "per week to win back", True)):
@@ -274,8 +282,9 @@ def render_html(f, st):
     elif hist.get("note"):
         H.append('<div class="ok">History check: %s</div>' % e(hist["note"]))
     H.append("<nav>")
+    short_labels = {"A": "Where it goes wrong", "B": "What you re-explain", "C": "Skills to have", "D": "Jobs to automate"}
     for sec in "ABCD":
-        H.append('<a href="#%s"><i style="background:%s">%s</i>%s</a>' % (sec, SECTION_META[sec][2], sec, e(SECTION_META[sec][0])))
+        H.append('<a href="#%s"><i style="background:%s">%s</i>%s</a>' % (sec, SECTION_META[sec][2], sec, e(short_labels[sec])))
     H.append("</nav>")
 
     since = f.get("since_last")
