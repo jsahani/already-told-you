@@ -41,8 +41,10 @@ Read `<DIR>/data/digest.md` in full. It has: numbers, templates/app prompts, a p
 push-back right after Claude's turn, with what Claude had said), and a session index.
 
 **Large history:** if `sessions_analysed` is over 40 or the digest says it was trimmed, also use subagents so your
-own context never overflows. Split the files in `<DIR>/data/chunks/` into groups of about 150k characters, and
-start one subagent per group (in parallel) with this task: "Read these files: <list>. They are a user's own
+own context never overflows. Split the files in `<DIR>/data/chunks/` into groups of about 150k characters (the
+digest lists them; the projects table shows their size), and start one subagent per group, all in one message,
+**in the foreground** (`run_in_background: false`): you need their results before you can continue, and this
+whole command must finish in one turn. Each subagent gets this task: "Read these files with the Read tool (no shell commands): <list>. They are a user's own
 messages to Claude Code, one section per session, `[C]` marks a likely correction. Return at most 900 words:
 (A) mistakes Claude repeats, (B) context the user re-explains, (C) tasks they ask for again and again,
 (D) recurring jobs with a rhythm (daily/weekly), each with a count, 1-2 verbatim quotes with their date and
