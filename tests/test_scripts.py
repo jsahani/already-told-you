@@ -260,6 +260,21 @@ class TestRender(FakeHome):
         self.assertIn("## A · Where it keeps going wrong", md)
         self.assertIn("1.3 h", html)  # 1.5 h - 10 min
 
+    def test_render_skill_matches(self):
+        f = json.load(open(os.path.join(FIX, "findings.sample.json")))
+        f["sections"]["C"][0]["match"] = {"status": "existing", "ref": "anthropics/skills@webapp-testing", "installs": 179816,
+                                          "stars": 181780, "url": "https://skills.sh/anthropics/skills/webapp-testing"}
+        f["sections"]["D"][0]["match"] = {"status": "none"}
+        p = os.path.join(self.tmp, "m.json")
+        json.dump(f, open(p, "w"))
+        out = os.path.join(self.tmp, "r")
+        self.assertEqual(run(render.main, ["--findings", p, "--stats", os.path.join(FIX, "stats.sample.json"), "--out", out])[0], 0)
+        for name in ("report.html", "report.md"):
+            text = open(os.path.join(out, name), encoding="utf-8").read()
+            self.assertIn("Existing skill: anthropics/skills@webapp-testing - install instead", text)
+            self.assertIn("No vetted match - draft your own", text)
+        self.assertNotIn("<script", open(os.path.join(out, "report.html"), encoding="utf-8").read())
+
     def test_render_rejects_bad_findings(self):
         bad = os.path.join(self.tmp, "bad.json")
         json.dump({"generated": "2026-10-17", "sections": {"A": [{"title": "x"}]}}, open(bad, "w"))

@@ -127,6 +127,9 @@ def render_md(f, st):
                     L.append("\n")
             if sec == "A" and it.get("fix"):
                 L.append("**Fix:** %s\n\n" % it["fix"])
+            if sec in "CD" and match_text(it):
+                link = (it.get("match") or {}).get("url")
+                L.append("**%s**%s\n\n" % (match_text(it), (" · %s" % link) if link else ""))
             L.append(quotes_md(it))
             L.append("\n")
     if f.get("summary"):
@@ -138,6 +141,19 @@ def render_md(f, st):
         L.append("\n")
     L.append("---\nMade with Already Told You, a free Claude Code plugin by @jsahani.ai. Dry run: nothing was installed or changed.\n")
     return "".join(L)
+
+
+def match_text(it):
+    """Optional result of /already-told-you:find-skills for a section C or D item, or '' when it was not checked."""
+    m = it.get("match") or {}
+    if m.get("status") == "existing" and m.get("ref"):
+        extra = ", ".join(x for x in (
+            ("%s installs" % m["installs"]) if m.get("installs") is not None else "",
+            ("%s GitHub stars" % m["stars"]) if m.get("stars") is not None else "") if x)
+        return "Existing skill: %s - install instead%s" % (m["ref"], (" (%s)" % extra) if extra else "")
+    if m.get("status") == "none":
+        return "No vetted match - draft your own"
+    return ""
 
 
 def saved_hours(f):
@@ -199,6 +215,8 @@ blockquote cite{display:block;font-style:normal;color:var(--muted);font-size:13p
 ol.steps{margin:10px 0 0;padding-left:22px}
 ol.steps li{margin:4px 0}
 .draft{display:inline-flex;gap:8px;align-items:center;margin-top:10px;background:#eef2ff;color:#2f3fa8;border-radius:10px;padding:6px 12px;font:14px ui-monospace,SFMono-Regular,Menlo,monospace}
+.match{margin-top:10px;display:inline-block;background:#eefaf4;color:#1e5c3d;border:1px solid #b6e6cc;border-radius:10px;padding:6px 12px;font-size:14px;font-weight:600}
+.match.none{background:var(--soft);color:#4a4a55;border-color:var(--line)}
 .since{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .since div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
 .since h4{margin:0 0 8px;font-size:15px}
@@ -263,6 +281,9 @@ def card(sec, it):
         body.append('<div class="rule">%s</div><div class="file">→ %s</div>' % (e(it["rule"]), e(it.get("file", "CLAUDE.md"))))
     if sec == "A" and it.get("fix"):
         body.append('<div class="fix"><b>Fix:</b> %s</div>' % e(it["fix"]))
+    if sec in "CD" and match_text(it):
+        found = (it.get("match") or {}).get("status") == "existing"
+        body.append('<div class="match%s">%s %s</div>' % ("" if found else " none", "✓" if found else "○", e(match_text(it))))
     body.append(quotes_html(it))
     return '<div class="card"><div class="count">%s<small>%s</small></div><div>%s</div></div>' % (e(it.get("count")), unit, "".join(body))
 
