@@ -1,0 +1,13 @@
+{
+  "name": "self-improve",
+  "version": "1.0.0",
+  "description": "Reads your Claude Code history on your own computer and tells you where it keeps going wrong, what you keep re-explaining, which skills you should already have (and drafts them), and which jobs you repeat by hand (and how to automate them). Free, local, no network.",
+  "author": {
+    "name": "Jatin Sahani",
+    "url": "https://www.instagram.com/jsahani.ai/"
+  },
+  "homepage": "https://github.com/jsahani/claude-self-improve",
+  "repository": "https://github.com/jsahani/claude-self-improve",
+  "license": "MIT",
+  "keywords": ["self-improvement", "history", "skills", "claude-md", "automation", "productivity", "local"]
+}

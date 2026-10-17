@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "jsahani",
+  "description": "Free Claude Code plugins by Jatin Sahani (@jsahani.ai).",
+  "owner": {
+    "name": "Jatin Sahani",
+    "url": "https://www.instagram.com/jsahani.ai/"
+  },
+  "plugins": [
+    {
+      "name": "self-improve",
+      "source": "./",
+      "description": "Reads your Claude Code history locally: where it goes wrong, what you keep re-explaining, skills you should have (drafted for you), and jobs to automate.",
+      "version": "1.0.0",
+      "category": "productivity"
+    }
+  ]
+}

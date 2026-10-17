@@ -1,0 +1,8 @@
+# Private working files - never published
+BRIEF.md
+.docs-cache/
+.scratch/
+review/
+__pycache__/
+*.pyc
+.DS_Store
