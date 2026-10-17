@@ -6,6 +6,8 @@ disable-model-invocation: true
 allowed-tools:
   - Read(~/claude-improve/**)
   - Glob
+  - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check *)
+  - Bash(plutil -lint *)
 ---
 
 # self-improve: automate one job
@@ -22,7 +24,11 @@ Work through one job at a time, in plain English, and confirm each step with the
 3. **Make the skill.** Every automation runs through a skill. If section C drafted one for this job, start from
    `<report>/skills/<name>/SKILL.md`; otherwise write a new draft there with the same rules (frontmatter `name` +
    `description` quoting the user's words; numbered steps; last step = approval). Show it, refine it with the user,
-   then install it the same way /self-improve:install-skills does (show, ask where, ask yes).
+   then install it with the bundled installer, never by writing into a skills folder yourself: ask where
+   (`~/.claude/skills` = all projects, `${CLAUDE_PROJECT_DIR}/.claude/skills` = this project), run
+   `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check --src <report>/skills/<name> --dest <dest>`,
+   and after a yes `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --install --src <report>/skills/<name> --dest <dest>`
+   (it asks for permission and never replaces an existing skill unless the user agrees to `--force`).
    **The approval step:** if the job sends, publishes, posts, pays or deletes, the skill prepares the result and
    stops. Scheduled runs have nobody to ask, so in a scheduled run the skill only writes a draft to a folder (or a
    draft in the app, e.g. an email draft) and the user approves it later. Never let a scheduled run send.
