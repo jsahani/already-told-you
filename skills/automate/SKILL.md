@@ -3,7 +3,9 @@ name: automate
 description: Picks one repeated job from section D of your self-improve report and sets up its automation with you - a skill, a skill plus an app connection (MCP), or a scheduled run - always ending with one human approval step before anything is sent, published, paid or deleted.
 argument-hint: "[job number or name]"
 disable-model-invocation: true
-allowed-tools: Read(~/claude-improve/**) Glob Bash(cat ${CLAUDE_SKILL_DIR}/reference/*) Bash(cat ${CLAUDE_PLUGIN_ROOT}/skills/run/reference/*)
+allowed-tools:
+  - Read(~/claude-improve/**)
+  - Glob
 ---
 
 # self-improve: automate one job
@@ -45,8 +47,73 @@ Work through one job at a time, in plain English, and confirm each step with the
 
 ---
 
-!`cat ${CLAUDE_PLUGIN_ROOT}/skills/run/reference/automation-options.md`
+## Automation options (checked against code.claude.com/docs, October 2026 - use only these)
+
+Pick the lightest option that fully does the job. The `how` field takes one of: `skill`, `skill + MCP`,
+`schedule (desktop)`, `schedule (routine)`, `schedule (cron)`.
+
+1. **`skill`** - the job is the same recipe every time, started by the user. A skill in `~/.claude/skills/<name>/`
+   (all projects) or `<project>/.claude/skills/<name>/` (one project) turns a 15-minute explain-and-steer into one
+   `/<name>` command. Usually also drafted in section C.
+2. **`skill + MCP`** - the recipe needs another app (email, calendar, Notion, Slack, a database...). The skill
+   calls that app through an MCP server. The user connects it with `claude mcp add ...` or `/mcp`, or uses a
+   claude.ai connector. Only name a specific app if the history shows they use it.
+3. **`schedule (desktop)`** - it should happen on a rhythm and needs local files. *Desktop scheduled tasks* in the
+   Claude Code Desktop app (Routines page → new local task) start a new session at the chosen time and frequency.
+   Runs on the user's machine, only while the app is open and the computer is awake; permissions are set per task.
+4. **`schedule (routine)`** - it should happen on a rhythm and does not need local files (it works on a GitHub
+   repo or through connectors). *Routines* run on Anthropic's cloud even when the laptop is closed; create one with
+   `/schedule` in Claude Code (e.g. `/schedule every Monday at 9am, ...`) or at claude.ai/code/routines. Research
+   preview, Pro/Max/Team/Enterprise plans, minimum interval one hour.
+5. **`schedule (cron)`** - fallback without the Desktop app: macOS `launchd` (or `cron`) runs
+   `claude -p "/<skill-name>"` headless at a set time, with `--allowedTools` listing only what the job needs.
+
+Not an option for a recurring job: `/loop` and session cron tasks only run while a Claude Code session is open,
+and expire after seven days.
+
+**Approval rule for every automation:** anything that sends, publishes, pays or deletes stops for one human
+approval step (the run prepares a draft or a preview; the user says yes before it goes out).
 
 ---
 
-!`cat ${CLAUDE_SKILL_DIR}/reference/launchd-template.plist`
+## launchd template (schedule (cron) on macOS)
+
+Fill in every `{{...}}` and save it as `<label>.plist`:
+
+- `{{label}}` - e.g. `com.self-improve.weekly-client-update`
+- `{{claude}}` - absolute path printed by `command -v claude`
+- `{{skill}}` - the installed skill name
+- `{{tools}}` - only what the job needs, e.g. `Read,Write(~/drafts/**),Bash(git log *)`
+- `{{project}}` - absolute project folder the job works in
+- `{{weekday}}` / `{{hour}}` / `{{minute}}` - 0 = Sunday; hour 0-23
+- `{{home}}` - the user's home folder written out in full (launchd does not expand `~`)
+
+The first line of the file must be the XML declaration, followed by the Apple plist DOCTYPE line
+(`PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"`), then:
+
+```xml
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>{{label}}</string>
+  <key>WorkingDirectory</key><string>{{project}}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{claude}}</string>
+    <string>-p</string>
+    <string>/{{skill}} (scheduled run: prepare drafts only, never send, publish, pay or delete)</string>
+    <string>--allowedTools</string>
+    <string>{{tools}}</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key><integer>{{weekday}}</integer>
+    <key>Hour</key><integer>{{hour}}</integer>
+    <key>Minute</key><integer>{{minute}}</integer>
+  </dict>
+  <key>StandardOutPath</key><string>{{home}}/claude-improve/automation/{{label}}.log</string>
+  <key>StandardErrorPath</key><string>{{home}}/claude-improve/automation/{{label}}.log</string>
+</dict>
+</plist>
+```
+
+Check the finished file with `plutil -lint <file>` before showing it to the user.

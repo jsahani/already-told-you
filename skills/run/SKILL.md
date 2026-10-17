@@ -3,7 +3,7 @@ name: run
 description: Reads your whole Claude Code history on this computer and writes a report on where Claude keeps going wrong, what you keep re-explaining, which skills you should already have (with first drafts written), and which jobs you repeat by hand and how to automate them. Dry run - it only writes into ~/claude-improve/. Run it with /self-improve:run, or /self-improve:run here for the current project only.
 argument-hint: "[here]"
 disable-model-invocation: true
-allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Bash(cat ${CLAUDE_SKILL_DIR}/reference/*) Read(~/claude-improve/**) Write(~/claude-improve/**) Edit(~/claude-improve/**) Glob Grep
+allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Read(~/claude-improve/**) Write(~/claude-improve/**) Edit(~/claude-improve/**) Glob Grep
 ---
 
 # self-improve: run
@@ -102,12 +102,110 @@ Remind them: this was a dry run, nothing was installed or changed.
 
 ---
 
-!`cat ${CLAUDE_SKILL_DIR}/reference/findings-schema.md`
+## findings.json format
+
+One JSON object. `render.py` checks it and refuses missing required fields (`generated`, `sections`, and per
+finding `title`, `count`, `quotes`). Quotes are verbatim, short (under 200 characters), at most 2 per finding.
+
+```json
+{
+  "generated": "YYYY-MM-DD",
+  "scope": "all projects",
+  "headline": "One or two plain sentences: the biggest pattern and the time it costs.",
+  "history": {"warning": "only if the extractor printed a history_warning", "note": "otherwise: kept N days, oldest session YYYY-MM-DD"},
+  "sections": {
+    "A": [{"id": "a-short-id", "title": "Says it's done before checking", "count": 14,
+           "detail": "What happens, in one or two sentences.",
+           "fix": "One concrete rule or habit that stops it.",
+           "quotes": [{"text": "verbatim quote", "date": "YYYY-MM-DD", "project": "name"}],
+           "keywords": ["phrases the user types about it"]}],
+    "B": [{"id": "b-short-id", "title": "...", "count": 9,
+           "rule": "The exact CLAUDE.md instruction to add.",
+           "file": "~/.claude/CLAUDE.md or /absolute/project/path/CLAUDE.md",
+           "quotes": [], "keywords": []}],
+    "C": [{"id": "c-short-id", "name": "skill-name", "title": "What the skill does", "count": 11,
+           "minutes_each": 12, "score": 132, "draft": "skills/skill-name/SKILL.md (only for drafted ones)",
+           "quotes": [], "keywords": []}],
+    "D": [{"id": "d-short-id", "title": "...", "count": 5, "per_week": 1.0,
+           "hours_per_week_now": 1.5, "minutes_after": 10,
+           "how": "skill | skill + MCP | schedule (desktop) | schedule (routine) | schedule (cron)",
+           "automation": "One sentence: what runs, when, and where the human approves.",
+           "steps": ["step 1", "step 2"],
+           "quotes": [], "keywords": []}]
+  },
+  "since_last": {"previous": "YYYY-MM-DD",
+                 "fixed": [{"title": "...", "detail": "before 6, after 0"}],
+                 "better": [], "still": []},
+  "summary": "Two or three sentences.",
+  "next": ["/self-improve:install-skills — review and install the drafted skills",
+           "/self-improve:apply-rules — add the section B rules to your CLAUDE.md",
+           "/self-improve:automate — set up one job from section D"]
+}
+```
+
+- `count` in B is the number of sessions; elsewhere the number of times.
+- `minutes_after` is minutes **per week** after automating (usually review and approval time).
+- Omit `since_last` when there was no previous report. Use `[]` for an empty section, never drop the key.
+- Each `next` entry is `command — what it does` (with the long dash).
 
 ---
 
-!`cat ${CLAUDE_SKILL_DIR}/reference/skill-template.md`
+## Skill draft template (for section C drafts)
+
+Write each draft to `<DIR>/skills/<skill-name>/SKILL.md`. Rules:
+
+- `<skill-name>`: lowercase letters, digits and hyphens, at most 64 characters, says what it does
+  (`weekly-client-update`, `ship-reel-cover`). Never the name of a built-in command (`/review`, `/init`, `/plan`...).
+- `description`: at most 1,024 characters. Start with what the skill does, then "Use when the user asks to ..."
+  followed by 2-3 phrasings **quoted from the user's real messages** so Claude recognises the request when they
+  say it again.
+- The body is the recipe the user kept explaining: inputs to ask for if missing, numbered steps with the tools,
+  folders, file names and quality checks the history shows they want, and how to show the result.
+- The last step is always an approval gate when the job sends, publishes, posts, pays, deletes or overwrites
+  anything: show the result and wait for an explicit "yes" first.
+- Facts only from the history. Where you are unsure, write `TODO (check):` so the user fills it in when they
+  review the draft. Keep it under 80 lines.
+
+```markdown
+---
+name: weekly-client-update
+description: Drafts the weekly client status update from this week's git history and roadmap cards. Use when the user asks to "write the weekly update for the client", "do the Monday report" or "summarise what we shipped this week".
+---
+
+# Weekly client update
+
+1. Ask which client if it is not clear from the project.
+2. Collect this week's work: `git log --since="last monday" --oneline` and the roadmap cards moved to done.
+3. Write the update in the user's format: three sections - Shipped, In progress, Needs your input. Plain English, no jargon, under 200 words.
+4. Save it to `updates/<YYYY-MM-DD>.md` and show it.
+5. **Approval:** ask "Send this to the client?" and do nothing more until the user says yes. Never send on your own.
+```
 
 ---
 
-!`cat ${CLAUDE_SKILL_DIR}/reference/automation-options.md`
+## Automation options (checked against code.claude.com/docs, October 2026 - use only these)
+
+Pick the lightest option that fully does the job. The `how` field takes one of: `skill`, `skill + MCP`,
+`schedule (desktop)`, `schedule (routine)`, `schedule (cron)`.
+
+1. **`skill`** - the job is the same recipe every time, started by the user. A skill in `~/.claude/skills/<name>/`
+   (all projects) or `<project>/.claude/skills/<name>/` (one project) turns a 15-minute explain-and-steer into one
+   `/<name>` command. Usually also drafted in section C.
+2. **`skill + MCP`** - the recipe needs another app (email, calendar, Notion, Slack, a database...). The skill
+   calls that app through an MCP server. The user connects it with `claude mcp add ...` or `/mcp`, or uses a
+   claude.ai connector. Only name a specific app if the history shows they use it.
+3. **`schedule (desktop)`** - it should happen on a rhythm and needs local files. *Desktop scheduled tasks* in the
+   Claude Code Desktop app (Routines page → new local task) start a new session at the chosen time and frequency.
+   Runs on the user's machine, only while the app is open and the computer is awake; permissions are set per task.
+4. **`schedule (routine)`** - it should happen on a rhythm and does not need local files (it works on a GitHub
+   repo or through connectors). *Routines* run on Anthropic's cloud even when the laptop is closed; create one with
+   `/schedule` in Claude Code (e.g. `/schedule every Monday at 9am, ...`) or at claude.ai/code/routines. Research
+   preview, Pro/Max/Team/Enterprise plans, minimum interval one hour.
+5. **`schedule (cron)`** - fallback without the Desktop app: macOS `launchd` (or `cron`) runs
+   `claude -p "/<skill-name>"` headless at a set time, with `--allowedTools` listing only what the job needs.
+
+Not an option for a recurring job: `/loop` and session cron tasks only run while a Claude Code session is open,
+and expire after seven days.
+
+**Approval rule for every automation:** anything that sends, publishes, pays or deletes stops for one human
+approval step (the run prepares a draft or a preview; the user says yes before it goes out).

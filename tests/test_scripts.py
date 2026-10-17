@@ -323,5 +323,35 @@ class TestKeepHistory(FakeHome):
         self.assertEqual(open(self.settings()).read(), "{not json")
 
 
+class TestPluginFiles(unittest.TestCase):
+    ROOT = os.path.join(HERE, "..")
+
+    def section(self, skill, heading):
+        text = open(os.path.join(self.ROOT, "skills", skill, "SKILL.md"), encoding="utf-8").read()
+        start = text.index(heading)
+        end = text.find("\n---\n", start)
+        return text[start: end if end != -1 else len(text)].strip()
+
+    def test_automation_options_match(self):
+        h = "## Automation options"
+        self.assertEqual(self.section("run", h), self.section("automate", h),
+                         "skills/run and skills/automate must carry the same Automation options text")
+
+    def test_every_skill_has_name_and_description(self):
+        for name in ("run", "install-skills", "apply-rules", "automate", "keep-history"):
+            fm, prob = install_skill.frontmatter(os.path.join(self.ROOT, "skills", name, "SKILL.md"))
+            self.assertEqual(prob, "", name)
+            self.assertEqual(fm["name"], name)
+
+    def test_no_shell_injection_in_skills(self):
+        # Found in testing: `!`cat <plugin file>`` aborts the whole skill once the plugin lives outside the folder
+        # Claude Code was started in (always the case after a real install). Reference text is written inline.
+        import re
+        for name in os.listdir(os.path.join(self.ROOT, "skills")):
+            text = open(os.path.join(self.ROOT, "skills", name, "SKILL.md"), encoding="utf-8").read()
+            self.assertIsNone(re.search(r"(^|\s)!`", text), name)
+            self.assertNotIn("```!", text, name)
+
+
 if __name__ == "__main__":
     unittest.main()
