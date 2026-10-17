@@ -1,8 +1,7 @@
 ---
 name: find-skills
-description: Finds ready-made skills in the open skills ecosystem (skills.sh) for a job you describe, checks each one before recommending it (installs, publisher, GitHub stars, and the actual SKILL.md and scripts read for risky instructions), and installs one only after your yes. The only command that uses the network, and only with your approval each time; only the search keywords you approve are sent. Use /already-told-you:find-skills [what you need], or /already-told-you:find-skills report to check the skills and jobs from your latest report.
+description: Finds ready-made skills in the open skills ecosystem (skills.sh) for a job you describe, checks each one before recommending it (installs, publisher, GitHub stars, and the actual SKILL.md and scripts read for risky instructions), and installs one only after your yes. Use when the user asks to find, search for or install a skill ("find a skill for X", "is there a skill that does X", "how do I do X, is there a skill for it"), or types /already-told-you:find-skills [what you need], or /already-told-you:find-skills report to check the skills and jobs from their latest report. The only command that uses the network, and only with the user's approval each time; only the search keywords they approve are sent.
 argument-hint: "[what you need | report [date]]"
-disable-model-invocation: true
 allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skill_search.py --plan *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Read(~/already-told-you/**) Read(~/claude-improve/**) Write(~/already-told-you/**) Edit(~/already-told-you/**) Glob Grep
 ---
 
@@ -30,7 +29,9 @@ Arguments: `$ARGUMENTS`
 ## 1. Understand the need
 
 - If the arguments start with `report`, go to **Checking a report** at the end.
-- Otherwise use the arguments as the need. If they are empty, ask in one line what job the skill should do.
+- Otherwise use the arguments as the need. If Claude started this command on its own (no arguments), take the
+  need from what the user just asked for. If there is still no clear need, ask in one line what job the skill
+  should do. Starting on its own changes nothing below: nothing is searched until the user says yes in step 2.
 - Turn the need into **2-4 short generic keywords**: the tool or domain plus the task (`react performance`,
   `changelog`, `pdf forms`, `pr review`). Drop anything specific to the user. Pick keywords someone else with the
   same job would also type.
