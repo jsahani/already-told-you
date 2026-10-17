@@ -11,6 +11,9 @@ allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(pyt
 You are reviewing the user's own Claude Code history to help them work better with Claude. Everything stays on
 this computer: you read the digest the bundled extractor makes, and you write only inside `~/claude-improve/`.
 
+**Run the two scripts exactly as written below**, with the full folder path typed out: no shell variables, no
+`cd`, no `&&` or `;`. Only that exact form is pre-approved; any other form stops for a permission prompt.
+
 **Dry run, always.** In this command never edit a CLAUDE.md, never install a skill, never change settings, never
 write outside `~/claude-improve/<date>/`. The user approves changes later with the other commands.
 
