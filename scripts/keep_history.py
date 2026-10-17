@@ -22,7 +22,8 @@ def main(argv=None):
     ap.add_argument("--days", type=int, default=365)
     a = ap.parse_args(argv)
 
-    path = os.path.join(os.path.expanduser("~"), ".claude", "settings.json")
+    cfg = os.path.expanduser(os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude")  # Claude Code's config folder
+    path = os.path.join(cfg, "settings.json")
     data = {}
     exists = os.path.isfile(path)
     if exists:

@@ -34,11 +34,14 @@ class FakeHome(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp(prefix="self-improve-test-")
         self.old_home = os.environ.get("HOME")
+        self.old_cfg = os.environ.pop("CLAUDE_CONFIG_DIR", None)
         os.environ["HOME"] = self.tmp
 
     def tearDown(self):
         if self.old_home is not None:
             os.environ["HOME"] = self.old_home
+        if self.old_cfg is not None:
+            os.environ["CLAUDE_CONFIG_DIR"] = self.old_cfg
         shutil.rmtree(self.tmp, ignore_errors=True)
 
 
@@ -166,6 +169,24 @@ class TestExtract(FakeHome):
         rows = {r["id"]: r for r in cmp_["findings"]}
         self.assertEqual(rows["a1"]["status"], "still happening")
         self.assertEqual(rows["b1"]["after"], 0)
+
+    def test_respects_claude_config_dir(self):
+        make_history(self.tmp)
+        alt = os.path.join(self.tmp, "alt-config")
+        shutil.move(os.path.join(self.tmp, ".claude"), alt)
+        os.environ["CLAUDE_CONFIG_DIR"] = alt
+        try:
+            json.dump({"cleanupPeriodDays": 400}, open(os.path.join(alt, "settings.json"), "w"))
+            out = os.path.join(self.tmp, "o")
+            self.assertEqual(run(extract.main, ["--out", out])[0], 0)
+            st = json.load(open(os.path.join(out, "stats.json")))
+            self.assertEqual(st["sessions_analysed"], 5)
+            self.assertEqual(st["cleanupPeriodDays"], 400)
+            self.assertIsNone(st["history_warning"])
+            code, msg = run(keep_history.main, ["--check"])
+            self.assertIn("Nothing to do", msg)
+        finally:
+            del os.environ["CLAUDE_CONFIG_DIR"]
 
     def test_no_history(self):
         code, _ = run(extract.main, ["--out", os.path.join(self.tmp, "o")])

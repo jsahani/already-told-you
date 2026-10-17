@@ -447,8 +447,13 @@ def find_files(root, project_filter):
     return out
 
 
-def read_cleanup_days(home):
-    path = os.path.join(home, ".claude", "settings.json")
+def config_dir():
+    """Claude Code's config folder: $CLAUDE_CONFIG_DIR if set, else ~/.claude."""
+    return os.path.expanduser(os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude")
+
+
+def read_cleanup_days(home=None):
+    path = os.path.join(config_dir(), "settings.json")
     try:
         with open(path, encoding="utf-8") as fh:
             v = json.load(fh).get("cleanupPeriodDays")
@@ -461,7 +466,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="self-improve: digest your Claude Code history (read-only, local).")
     ap.add_argument("--report-root", default=None, help="writes into <root>/<YYYY-MM-DD>/data (e.g. ~/claude-improve)")
     ap.add_argument("--out", default=None, help="exact output folder (instead of --report-root)")
-    ap.add_argument("--projects-dir", default="~/.claude/projects")
+    ap.add_argument("--projects-dir", default=None, help="default: $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects")
     ap.add_argument("--project", default=None, help="only sessions started in this folder (path)")
     ap.add_argument("--min-turns", type=int, default=3)
     ap.add_argument("--max-chars", type=int, default=120000)
@@ -470,6 +475,8 @@ def main(argv=None):
 
     t_start = time.time()
     home = os.path.expanduser("~")
+    if not args.projects_dir:
+        args.projects_dir = os.path.join(config_dir(), "projects")
     root = os.path.expanduser(args.projects_dir)
     today = dt.date.today().isoformat()
     if args.out:

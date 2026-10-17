@@ -19,7 +19,8 @@ Nothing is installed until the user says yes to that specific skill.
 3. **For each chosen skill, one at a time:**
    - Read its `SKILL.md` and show it in full. Point out any `TODO (check):` lines; offer to fill them in with the
      user's answers before installing (edit the draft in the report folder only).
-   - Ask where: **all projects** (`~/.claude/skills`) or **this project only** (`${CLAUDE_PROJECT_DIR}/.claude/skills`).
+   - Ask where: **all projects** (`~/.claude/skills`, or `$CLAUDE_CONFIG_DIR/skills` if the user set that
+     variable) or **this project only** (`${CLAUDE_PROJECT_DIR}/.claude/skills`).
      Recommend all projects when the quotes behind it came from 2+ projects.
    - Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check --src <report>/skills/<name> --dest <dest>`.
      If it says the skill is already installed there, show both versions' differences and ask whether to replace
