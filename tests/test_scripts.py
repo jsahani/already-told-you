@@ -343,6 +343,19 @@ class TestPluginFiles(unittest.TestCase):
             self.assertEqual(prob, "", name)
             self.assertEqual(fm["name"], name)
 
+    def test_no_stays_on_your_computer_claims(self):
+        # The analysis runs in the user's Claude Code session (through Anthropic), so the published text must not
+        # claim the history never leaves the computer.
+        import re
+        bad = re.compile(r"(?i)(stays? on (your|this) computer|never leaves|nothing (left|leaves) your computer|"
+                         r"nothing uploaded|made on your computer|everything stays)")
+        files = ["README.md", os.path.join(".claude-plugin", "plugin.json"), os.path.join(".claude-plugin", "marketplace.json"),
+                 os.path.join("scripts", "render.py")]
+        files += [os.path.join("skills", n, "SKILL.md") for n in os.listdir(os.path.join(self.ROOT, "skills"))]
+        for rel in files:
+            text = open(os.path.join(self.ROOT, rel), encoding="utf-8").read()
+            self.assertIsNone(bad.search(text), "%s: %s" % (rel, (bad.search(text) or [""])[0]))
+
     def test_no_shell_injection_in_skills(self):
         # Found in testing: `!`cat <plugin file>`` aborts the whole skill once the plugin lives outside the folder
         # Claude Code was started in (always the case after a real install). Reference text is written inline.

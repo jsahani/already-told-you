@@ -66,7 +66,7 @@ def quotes_md(item):
 def render_md(f, st):
     L = []
     L.append("# Your Claude Code, reviewed\n\n")
-    L.append("*%s · %s · made on your computer by self-improve on %s. Dry run: nothing was installed or changed.*\n\n" % (
+    L.append("*%s · %s · made by self-improve (local extractor + your own Claude Code session) on %s. Dry run: nothing was installed or changed.*\n\n" % (
         f.get("scope") or st.get("scope", "all projects"), "%s → %s" % (st.get("analysed_from"), st.get("analysed_to")), f.get("generated")))
     if f.get("headline"):
         L.append("**%s**\n\n" % f["headline"])
@@ -266,7 +266,7 @@ def render_html(f, st):
     if f.get("headline"):
         H.append('<p class="lede">%s</p>' % e(f["headline"]))
     H.append('<div class="meta"><span class="pill">%s</span><span class="pill">%s → %s</span><span class="pill">%s projects</span>'
-             '<span class="pill">made on your computer</span></div>' % (
+             '<span class="pill">no account · no third-party service</span></div>' % (
                  e(f.get("scope") or st.get("scope", "all projects")), e(st.get("analysed_from")), e(st.get("analysed_to")), e(st.get("projects"))))
     H.append('<div class="stats">')
     for val, label, hl in (
@@ -315,7 +315,8 @@ def render_html(f, st):
         cmd, _, rest = str(n).partition(" — ")
         H.append("<code>%s%s</code>" % (e(cmd), (" <span>— %s</span>" % e(rest)) if rest else ""))
     H.append("</div>")
-    H.append("<footer>Generated on your computer by <b>self-improve</b>, a free Claude Code plugin by @jsahani.ai · "
+    H.append("<footer>Made by <b>self-improve</b>, a free Claude Code plugin by @jsahani.ai: a local extractor plus "
+             "your own Claude Code session · no account, no third-party service · "
              "dry run: nothing was installed or changed · %s sessions, %s MB of history read</footer>" % (
                  e(st.get("sessions_total")), e(round(num(st.get("bytes_read")) / 1e6))))
     H.append("</div></body></html>")

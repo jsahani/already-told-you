@@ -46,17 +46,19 @@ Then start Claude Code and type `/self-improve:run`.
 Run `/self-improve:run` again in a few weeks: the report adds a **Since last time** section showing what got fixed
 and what is still happening.
 
-## Your history stays on your computer
+## What happens to your history
 
-- **Read:** your session transcripts in `~/.claude/projects/` (read-only; nothing in them is changed or moved) and
-  the `cleanupPeriodDays` value in `~/.claude/settings.json`.
-- **Written:** only `~/claude-improve/<date>/` - `report.md`, `report.html`, `findings.json`, drafted skills, and
-  the digest the report was built from. Delete the folder whenever you like.
-- **No network, no account, no telemetry.** The bundled scripts are plain Python (standard library only) and make
-  no network calls. Read them in `scripts/`.
-- **One honest note:** Claude has to read the digest to write the report, so trimmed excerpts of your own messages
-  (up to ~120k characters; API keys, tokens and email addresses masked) go to Claude in that session, exactly like
-  anything else you type into Claude Code.
+- **No account, no dashboard, no third-party service.** The plugin has no server of its own and the bundled
+  scripts make no network calls of their own. They are plain Python (standard library only); read them in
+  `scripts/`.
+- **The extractor runs on your computer.** It reads your session transcripts in `~/.claude/projects/` (read-only;
+  nothing in them is changed or moved) and the `cleanupPeriodDays` value in `~/.claude/settings.json`.
+- **It writes only to `~/claude-improve/<date>/`** - `report.md`, `report.html`, `findings.json`, drafted skills,
+  and the digest the report was built from. Delete the folder whenever you like.
+- **The analysis is done by your own Claude Code session.** Claude reads the extracted digest (trimmed excerpts of
+  your own messages, up to ~120k characters, with API keys, tokens and email addresses masked) the same way it
+  reads anything in a Claude Code session: through Anthropic, under the same terms as the rest of your Claude Code
+  use.
 
 ## The 30-day trap
 

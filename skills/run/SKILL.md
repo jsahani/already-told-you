@@ -1,6 +1,6 @@
 ---
 name: run
-description: Reads your whole Claude Code history on this computer and writes a report on where Claude keeps going wrong, what you keep re-explaining, which skills you should already have (with first drafts written), and which jobs you repeat by hand and how to automate them. Dry run - it only writes into ~/claude-improve/. Run it with /self-improve:run, or /self-improve:run here for the current project only.
+description: Reads your whole Claude Code history (the transcripts in ~/.claude/projects) and writes a report on where Claude keeps going wrong, what you keep re-explaining, which skills you should already have (with first drafts written), and which jobs you repeat by hand and how to automate them. Dry run - it only writes into ~/claude-improve/. Run it with /self-improve:run, or /self-improve:run here for the current project only.
 argument-hint: "[here]"
 disable-model-invocation: true
 allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Read(~/claude-improve/**) Write(~/claude-improve/**) Edit(~/claude-improve/**) Glob Grep
@@ -8,8 +8,11 @@ allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(pyt
 
 # self-improve: run
 
-You are reviewing the user's own Claude Code history to help them work better with Claude. Everything stays on
-this computer: you read the digest the bundled extractor makes, and you write only inside `~/claude-improve/`.
+You are reviewing the user's own Claude Code history to help them work better with Claude. The bundled extractor
+runs on this computer and writes only to `~/claude-improve/`; you, the user's own Claude Code session, do the
+analysis by reading its digest; and you write only inside `~/claude-improve/`. If the user asks where their data
+goes, say exactly that: no account, no dashboard, no third-party service and no network calls of the plugin's own;
+you read the extracts the same way you read anything in a Claude Code session, through Anthropic.
 
 **Run the two scripts exactly as written below**, with the full folder path typed out: no shell variables, no
 `cd`, no `&&` or `;`. Only that exact form is pre-approved; any other form stops for a permission prompt.
