@@ -534,7 +534,7 @@ class TestPluginFiles(unittest.TestCase):
                          "skills/run and skills/automate must carry the same Automation options text")
 
     def test_every_skill_has_name_and_description(self):
-        for name in ("run", "install-skills", "apply-rules", "automate", "keep-history"):
+        for name in ("run", "install-skills", "apply-rules", "automate", "keep-history", "find-skills"):
             fm, prob = install_skill.frontmatter(os.path.join(self.ROOT, "skills", name, "SKILL.md"))
             self.assertEqual(prob, "", name)
             self.assertEqual(fm["name"], name)
@@ -551,6 +551,27 @@ class TestPluginFiles(unittest.TestCase):
         for rel in files:
             text = open(os.path.join(self.ROOT, rel), encoding="utf-8").read()
             self.assertIsNone(bad.search(text), "%s: %s" % (rel, (bad.search(text) or [""])[0]))
+
+    def test_network_steps_are_never_pre_approved(self):
+        # The search and the vetting reach the network: each must stop for the user's permission prompt.
+        for name in os.listdir(os.path.join(self.ROOT, "skills")):
+            fm, _ = install_skill.frontmatter(os.path.join(self.ROOT, "skills", name, "SKILL.md"))
+            tools = fm.get("allowed-tools", "")
+            self.assertNotIn("skill_search.py --search", tools, name)
+            self.assertNotIn("skill_search.py --vet", tools, name)
+            self.assertNotIn("skill_search.py *", tools, name)
+            self.assertNotIn("npx", tools, name)
+            if name != "find-skills":
+                self.assertNotIn("skill_search", tools, name)
+
+    def test_privacy_wording_matches_the_network_use(self):
+        # The plugin now has one opt-in network feature; no published text may claim it never uses the network.
+        import re
+        for rel in ("README.md", os.path.join(".claude-plugin", "plugin.json"), os.path.join(".claude-plugin", "marketplace.json")):
+            text = open(os.path.join(self.ROOT, rel), encoding="utf-8").read()
+            self.assertIsNone(re.search(r"(?i)no network calls(?! unless| of its own unless| in )", text), rel)
+        plugin = json.load(open(os.path.join(self.ROOT, ".claude-plugin", "plugin.json")))
+        self.assertIn("unless you opt in", plugin["description"])
 
     def test_no_shell_injection_in_skills(self):
         # Found in testing: `!`cat <plugin file>`` aborts the whole skill once the plugin lives outside the folder

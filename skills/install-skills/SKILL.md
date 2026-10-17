@@ -16,6 +16,12 @@ Nothing is installed until the user says yes to that specific skill.
    "No drafted skills yet - run /already-told-you:run first" and stop.
 2. **List them.** Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --list --report <report folder>`.
    If `<report>/findings.json` exists, add each skill's line from section C (how often it came up, minutes each).
+   If an item has a `match` field (from `/already-told-you:find-skills report`), add "Existing skill: <ref> -
+   install instead" or "No vetted match - draft your own".
+   If no item has a `match` yet, offer once, as an option: "Before you install these, I can check whether a
+   vetted ready-made skill already exists for any of them with `/already-told-you:find-skills report`. It asks
+   first and sends only short search keywords you approve. Want that, or go straight to the drafts?" If they want
+   it, tell them to run that command and stop here; otherwise continue offline.
    Ask which ones the user wants to look at (they can say "all").
 3. **For each chosen skill, one at a time:**
    - Read its `SKILL.md` and show it in full. Point out any `TODO (check):` lines; offer to fill them in with the

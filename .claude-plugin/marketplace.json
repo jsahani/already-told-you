@@ -11,8 +11,8 @@
       "name": "already-told-you",
       "displayName": "Already Told You",
       "source": "./",
-      "description": "Stop typing 'I already told you this' to Claude. Reads your Claude Code history with your own Claude Code session: where it goes wrong, what you keep re-explaining, skills you should have (drafted for you), and jobs to automate.",
-      "version": "1.0.0",
+      "description": "Stop typing 'I already told you this' to Claude. Reads your Claude Code history with your own Claude Code session: where it goes wrong, what you keep re-explaining, skills you should have (drafted for you, or a vetted ready-made one), and jobs to automate.",
+      "version": "1.1.0",
       "category": "productivity"
     }
   ]

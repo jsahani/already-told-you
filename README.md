@@ -35,12 +35,13 @@ Or paste this into Claude Code:
 
 Then start Claude Code and type `/already-told-you:run`.
 
-## The 5 commands
+## The 6 commands
 
 | Command | What it does | Changes anything? |
 |---|---|---|
 | `/already-told-you:run` | Reads your history (all projects, or `/already-told-you:run here` for this one) and writes the report to `~/already-told-you/<date>/` | No - writes only into `~/already-told-you/` |
 | `/already-told-you:install-skills` | Shows each drafted skill, you pick, you see the file, you approve, it installs for all projects or one project | Only what you approve; never overwrites a skill without asking |
+| `/already-told-you:find-skills [what you need]` | Searches the public skills directory ([skills.sh](https://skills.sh)) for a ready-made skill, checks each result (installs, publisher, GitHub stars, and reads its SKILL.md and scripts for risky instructions) and recommends the best 1-3. `/already-told-you:find-skills report` does this for the skills and jobs in your latest report | Only what you approve. The one command that uses the network: it shows the search keywords first and sends nothing until you say yes |
 | `/already-told-you:apply-rules` | Adds the approved rules to the right CLAUDE.md inside a marked block, after showing the diff | Only the marked block; re-running refreshes it, never duplicates |
 | `/already-told-you:automate` | Sets up one repeated job with you: a skill, a skill + app connection, or a scheduled run | Only what you approve; anything that sends, publishes, pays or deletes waits for your yes |
 | `/already-told-you:keep-history` | Keeps a year of history instead of 30 days (`cleanupPeriodDays: 365`) | Your `~/.claude/settings.json`, after a backup and your yes |
@@ -50,9 +51,9 @@ fixed and what is still happening.
 
 ## What happens to your history
 
-- **No account, no dashboard, no third-party service.** The plugin has no server of its own and the bundled
-  scripts make no network calls of their own. They are plain Python (standard library only); read them in
-  `scripts/`.
+- **No account, no dashboard, and your history goes to no third-party service.** The plugin has no server of its
+  own. The bundled scripts are plain Python (standard library only); read them in `scripts/`. They make no network
+  calls of their own unless you opt in to the skill search (below).
 - **The extractor runs on your computer.** It reads your session transcripts in `~/.claude/projects/` (read-only;
   nothing in them is changed or moved) and the `cleanupPeriodDays` value in `~/.claude/settings.json`.
 - **It writes only to `~/already-told-you/<date>/`** - `report.md`, `report.html`, `findings.json`, drafted
@@ -61,6 +62,14 @@ fixed and what is still happening.
   your own messages, up to ~120k characters, with API keys, tokens and email addresses masked) the same way it
   reads anything in a Claude Code session: through Anthropic, under the same terms as the rest of your Claude Code
   use.
+- **The skill search is opt-in, every time.** `/already-told-you:find-skills` is the only command that uses the
+  network. Before anything is sent it shows you the 2-4 short, generic search keywords (for example
+  `playwright testing`) and the exact web address, and waits for your yes. The script refuses keywords that look
+  like file paths, web addresses, emails, @handles, long numbers, keys, your login name or the names of your
+  projects. Never sent: your history, quotes, file paths, project, client or people's names. What it contacts:
+  `skills.sh` (the search), then `api.github.com`, `raw.githubusercontent.com` and `skills.sh` again to check the
+  results, using only the public names the search returned. Those services see your IP address, as with any web
+  request. `/already-told-you:run` itself never searches.
 
 ## The 30-day trap
 
@@ -93,6 +102,11 @@ you remove them (delete the skill folder, or the block between `<!-- already-tol
   digest capped to fit one model context. On large histories `/already-told-you:run` splits the detail across
   subagents.
 - `scripts/render.py` turns the findings into `report.md` and a single self-contained `report.html`.
+- `scripts/skill_search.py` cleans the search keywords, queries skills.sh, and vets each result: GitHub stars, repo
+  age, the security scans skills.sh publishes, and a scan of every file in the skill folder for remote code, secret
+  requests, broad permissions, data sent out and hidden instructions. It downloads the exact commit it checked, so
+  the copy you install is the copy that was read. (It calls the public skills.sh search directly instead of
+  `npx skills find`, which needs Node and also sends a usage ping.)
 - Tests: `python3 -m unittest discover -s tests`
 
 ## Licence

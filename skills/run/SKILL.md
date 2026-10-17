@@ -11,8 +11,10 @@ allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(pyt
 You are reviewing the user's own Claude Code history to help them work better with Claude. The bundled extractor
 runs on this computer and writes only to `~/already-told-you/`; you, the user's own Claude Code session, do the
 analysis by reading its digest; and you write only inside `~/already-told-you/`. If the user asks where their data
-goes, say exactly that: no account, no dashboard, no third-party service and no network calls of the plugin's own;
-you read the extracts the same way you read anything in a Claude Code session, through Anthropic.
+goes, say exactly that: no account, no dashboard, no third-party service and no network calls of the plugin's own
+in this command; you read the extracts the same way you read anything in a Claude Code session, through Anthropic.
+(The only command that uses the network is the opt-in `/already-told-you:find-skills`, which sends only search
+keywords the user approves. Never run it from here.)
 
 **Run the two scripts exactly as written below**, with the full folder path typed out: no shell variables, no
 `cd`, no `&&` or `;`. Only that exact form is pre-approved; any other form stops for a permission prompt.
@@ -97,6 +99,8 @@ history warning if any. Then the report path and these next commands:
 
 - `open <DIR>/report.html` - read the full report (macOS; on Linux `xdg-open`)
 - `/already-told-you:install-skills` - review the drafted skills and install the ones you want
+- `/already-told-you:find-skills report` - optional: check whether a vetted ready-made skill already exists for
+  the skills and jobs in sections C and D (asks first; sends only short search keywords you approve)
 - `/already-told-you:apply-rules` - add the section B rules to the right CLAUDE.md (you see the diff first)
 - `/already-told-you:automate` - set up one job from section D, with an approval step
 - `/already-told-you:keep-history` - only if the history check warned you
@@ -149,6 +153,8 @@ finding `title`, `count`, `quotes`). Quotes are verbatim, short (under 200 chara
 - `count` in B is the number of sessions; elsewhere the number of times.
 - `minutes_after` is minutes **per week** after automating (usually review and approval time).
 - Omit `since_last` when there was no previous report. Use `[]` for an empty section, never drop the key.
+- Never add a `match` field to C or D items: only `/already-told-you:find-skills report` sets it, after the user
+  opts in to a search. If the previous report's items had one, do not copy it over.
 - Each `next` entry is `command — what it does` (with the long dash).
 
 ---
