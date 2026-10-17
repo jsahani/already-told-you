@@ -1,0 +1,43 @@
+{
+  "generated": "2026-10-17",
+  "scope": "all projects",
+  "headline": "Claude keeps shipping before checking the result, and you keep pasting the same deploy steps. Two skills and one rule would save about 3 hours a week.",
+  "history": {"note": "Transcripts are kept for 365 days (cleanupPeriodDays = 365). Oldest session: 2026-09-12."},
+  "sections": {
+    "A": [
+      {"id": "a-unverified", "title": "Says it's done before checking the result", "count": 14,
+       "detail": "In 14 sessions you had to point out that the page, build or file was still broken after Claude said it was finished.",
+       "fix": "Add a rule: after any change, run the check (tests, build, screenshot) and show the output before saying done.",
+       "quotes": [{"text": "It's still showing the old header, did you even check?", "date": "2026-10-02", "project": "shop-site"},
+                  {"text": "No, the build fails, look at the error first", "date": "2026-09-28", "project": "api"}],
+       "keywords": ["did you even check", "still showing", "build fails"]},
+      {"id": "a-scope", "title": "Changes things you didn't ask to change", "count": 6,
+       "detail": "Edits spill into files outside the request.",
+       "fix": "Rule: touch only the files named in the request; ask before widening scope.",
+       "quotes": [{"text": "I never asked you to change the footer", "date": "2026-10-09", "project": "shop-site"}],
+       "keywords": ["never asked"]}
+    ],
+    "B": [
+      {"id": "b-stack", "title": "Your stack and where things live", "count": 9,
+       "rule": "This project is a Next.js 15 app. Content lives in content/, components in app/components/. Use pnpm, never npm.",
+       "file": "project CLAUDE.md (shop-site)",
+       "quotes": [{"text": "remember we use pnpm not npm", "date": "2026-10-04", "project": "shop-site"}],
+       "keywords": ["pnpm not npm"]}
+    ],
+    "C": [
+      {"id": "c-deploy", "name": "deploy-preview", "title": "Deploy a preview and send me the link", "count": 11, "minutes_each": 12, "score": 132,
+       "draft": "skills/deploy-preview/SKILL.md",
+       "quotes": [{"text": "deploy a preview and give me the link", "date": "2026-10-10", "project": "shop-site"}],
+       "keywords": ["deploy a preview"]}
+    ],
+    "D": [
+      {"id": "d-weekly-report", "title": "Monday client status report", "count": 5, "per_week": 1, "hours_per_week_now": 1.5, "minutes_after": 10,
+       "how": "schedule", "automation": "A skill that drafts the report from git log and the roadmap, run every Monday 9:00 by a Desktop scheduled task; you approve before it is sent.",
+       "steps": ["/self-improve:automate and pick this job", "Approve the draft each Monday before it goes to the client"],
+       "quotes": [{"text": "write the weekly update for the client from what we did", "date": "2026-10-13", "project": "agency"}],
+       "keywords": ["weekly update"]}
+    ]
+  },
+  "summary": "Biggest win: make Claude prove a change works before calling it done.",
+  "next": ["/self-improve:install-skills — review and install the drafted skills", "/self-improve:apply-rules — add the section B rules to your CLAUDE.md", "/self-improve:automate — set up one job from section D"]
+}
