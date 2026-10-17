@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Add approved section-B rules from a self-improve report to a CLAUDE.md, inside a marked block.
+"""Add approved section-B rules from an Already Told You report to a CLAUDE.md, inside a marked block.
 
   python3 apply_rules.py --preview --findings F --target PATH --ids b-1,b-2   show the unified diff (writes nothing)
   python3 apply_rules.py --write   --findings F --target PATH --ids b-1,b-2   write it
 
-The block lives between <!-- self-improve:start --> and <!-- self-improve:end -->. Running again replaces the
-block (never duplicates it). Text outside the block is never touched. Standard library only.
+The block lives between <!-- already-told-you:start --> and <!-- already-told-you:end -->. Running again replaces
+the block (never duplicates it). A block written before the rename (<!-- self-improve:start/end -->) is replaced
+the same way. Text outside the block is never touched. Standard library only.
 """
 import argparse
 import difflib
@@ -14,12 +15,13 @@ import os
 import re
 import sys
 
-START = "<!-- self-improve:start -->"
-END = "<!-- self-improve:end -->"
+START = "<!-- already-told-you:start -->"
+END = "<!-- already-told-you:end -->"
+MARKER_NAMES = ("already-told-you", "self-improve")  # current name first, then the pre-rename name
 
 
 def build_block(rules, date):
-    lines = [START, "## Learned from my Claude Code history (self-improve, %s)" % date, ""]
+    lines = [START, "## Learned from my Claude Code history (Already Told You, %s)" % date, ""]
     for r in rules:
         rule = " ".join(str(r.get("rule", "")).split())
         if rule:
@@ -29,9 +31,10 @@ def build_block(rules, date):
 
 
 def new_text(old, block):
-    pat = re.compile(re.escape(START) + r".*?" + re.escape(END) + r"\n?", re.S)
-    if pat.search(old):
-        return pat.sub(lambda m: block, old, count=1)
+    for name in MARKER_NAMES:
+        pat = re.compile(re.escape("<!-- %s:start -->" % name) + r".*?" + re.escape("<!-- %s:end -->" % name) + r"\n?", re.S)
+        if pat.search(old):
+            return pat.sub(lambda m: block, old, count=1)
     if not old:
         return block
     sep = "" if old.endswith("\n\n") else ("\n" if old.endswith("\n") else "\n\n")
@@ -77,7 +80,7 @@ def main(argv=None):
     os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
     with open(target, "w", encoding="utf-8") as fh:
         fh.write(new)
-    print("\nwrote %s (%d rules in the self-improve block)" % (target, len(rules)))
+    print("\nwrote %s (%d rules in the already-told-you block)" % (target, len(rules)))
     return 0
 
 

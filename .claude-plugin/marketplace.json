@@ -8,9 +8,10 @@
   },
   "plugins": [
     {
-      "name": "self-improve",
+      "name": "already-told-you",
+      "displayName": "Already Told You",
       "source": "./",
-      "description": "Reads your Claude Code history with your own Claude Code session: where it goes wrong, what you keep re-explaining, skills you should have (drafted for you), and jobs to automate.",
+      "description": "Stop typing 'I already told you this' to Claude. Reads your Claude Code history with your own Claude Code session: where it goes wrong, what you keep re-explaining, skills you should have (drafted for you), and jobs to automate.",
       "version": "1.0.0",
       "category": "productivity"
     }

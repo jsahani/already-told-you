@@ -1,18 +1,19 @@
 ---
 name: install-skills
-description: Shows the skills that /self-improve:run drafted from your history, lets you pick, shows each file, and installs only the ones you approve - for all projects (~/.claude/skills) or just one project. Never overwrites an existing skill without asking.
+description: Shows the skills that /already-told-you:run drafted from your history, lets you pick, shows each file, and installs only the ones you approve - for all projects (~/.claude/skills) or just one project. Never overwrites an existing skill without asking.
 argument-hint: "[report date]"
 disable-model-invocation: true
-allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --list *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check *) Read(~/claude-improve/**) Glob
+allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --list *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check *) Read(~/already-told-you/**) Read(~/claude-improve/**) Glob
 ---
 
-# self-improve: install drafted skills
+# Already Told You: install drafted skills
 
 Nothing is installed until the user says yes to that specific skill.
 
-1. **Find the report.** Use `~/claude-improve/$ARGUMENTS` if a date was given, otherwise the newest
-   `~/claude-improve/<YYYY-MM-DD>/` folder that has a `skills/` folder (use Glob). If there is none, say
-   "No drafted skills yet - run /self-improve:run first" and stop.
+1. **Find the report.** Use `~/already-told-you/$ARGUMENTS` if a date was given, otherwise the newest
+   `~/already-told-you/<YYYY-MM-DD>/` folder that has a `skills/` folder (use Glob). If there is none, also look
+   in `~/claude-improve/` (reports made before the plugin was renamed). If there is still none, say
+   "No drafted skills yet - run /already-told-you:run first" and stop.
 2. **List them.** Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --list --report <report folder>`.
    If `<report>/findings.json` exists, add each skill's line from section C (how often it came up, minutes each).
    Ask which ones the user wants to look at (they can say "all").

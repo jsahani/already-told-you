@@ -5,10 +5,10 @@ disable-model-invocation: true
 allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/keep_history.py --check)
 ---
 
-# self-improve: keep a year of history
+# Already Told You: keep a year of history
 
 Claude Code stores session transcripts in `~/.claude/projects/` and deletes them after `cleanupPeriodDays` days,
-30 by default. /self-improve:run can only learn from what is still there. (If the user set `CLAUDE_CONFIG_DIR`,
+30 by default. /already-told-you:run can only learn from what is still there. (If the user set `CLAUDE_CONFIG_DIR`,
 the script uses that folder instead of `~/.claude`.)
 
 1. Run `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/keep_history.py --check` and show the output.

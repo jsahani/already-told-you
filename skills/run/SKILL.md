@@ -1,16 +1,16 @@
 ---
 name: run
-description: Reads your whole Claude Code history (the transcripts in ~/.claude/projects) and writes a report on where Claude keeps going wrong, what you keep re-explaining, which skills you should already have (with first drafts written), and which jobs you repeat by hand and how to automate them. Dry run - it only writes into ~/claude-improve/. Run it with /self-improve:run, or /self-improve:run here for the current project only.
+description: Reads your whole Claude Code history (the transcripts in ~/.claude/projects) and writes a report on where Claude keeps going wrong, what you keep re-explaining, which skills you should already have (with first drafts written), and which jobs you repeat by hand and how to automate them. Dry run - it only writes into ~/already-told-you/. Run it with /already-told-you:run, or /already-told-you:run here for the current project only.
 argument-hint: "[here]"
 disable-model-invocation: true
-allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Read(~/claude-improve/**) Write(~/claude-improve/**) Edit(~/claude-improve/**) Glob Grep
+allowed-tools: Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py *) Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/render.py *) Read(~/already-told-you/**) Write(~/already-told-you/**) Edit(~/already-told-you/**) Glob Grep
 ---
 
-# self-improve: run
+# Already Told You: run
 
 You are reviewing the user's own Claude Code history to help them work better with Claude. The bundled extractor
-runs on this computer and writes only to `~/claude-improve/`; you, the user's own Claude Code session, do the
-analysis by reading its digest; and you write only inside `~/claude-improve/`. If the user asks where their data
+runs on this computer and writes only to `~/already-told-you/`; you, the user's own Claude Code session, do the
+analysis by reading its digest; and you write only inside `~/already-told-you/`. If the user asks where their data
 goes, say exactly that: no account, no dashboard, no third-party service and no network calls of the plugin's own;
 you read the extracts the same way you read anything in a Claude Code session, through Anthropic.
 
@@ -18,7 +18,7 @@ you read the extracts the same way you read anything in a Claude Code session, t
 `cd`, no `&&` or `;`. Only that exact form is pre-approved; any other form stops for a permission prompt.
 
 **Dry run, always.** In this command never edit a CLAUDE.md, never install a skill, never change settings, never
-write outside `~/claude-improve/<date>/`. The user approves changes later with the other commands.
+write outside `~/already-told-you/<date>/`. The user approves changes later with the other commands.
 
 Arguments: `$ARGUMENTS`
 
@@ -26,11 +26,11 @@ Arguments: `$ARGUMENTS`
 
 If the arguments say `here`, `this project` or similar, analyse only the current project; otherwise all projects.
 
-- All projects: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py --report-root ~/claude-improve`
-- This project only: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py --report-root ~/claude-improve --project "${CLAUDE_PROJECT_DIR}"`
+- All projects: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py --report-root ~/already-told-you`
+- This project only: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/extract.py --report-root ~/already-told-you --project "${CLAUDE_PROJECT_DIR}"`
 
 It streams `~/.claude/projects/` read-only and prints a JSON line with the numbers, then `report folder: <DIR>` and
-`previous report compared: <path or none>`. Use that `<DIR>` (it is `~/claude-improve/<YYYY-MM-DD>`) for everything
+`previous report compared: <path or none>`. Use that `<DIR>` (it is `~/already-told-you/<YYYY-MM-DD>`) for everything
 below. If it prints "No Claude Code history found", tell the user and stop. If fewer than 5 sessions were analysed,
 say the report will be thin and continue.
 
@@ -38,7 +38,7 @@ say the report will be thin and continue.
 
 From the printed JSON: Claude Code deletes transcripts after `cleanupPeriodDays` days, 30 by default. Tell the user
 the oldest session date found. If `history_warning` is set (the setting is missing or under 365), warn them that
-older sessions are already gone or soon will be and that `/self-improve:keep-history` keeps a year.
+older sessions are already gone or soon will be and that `/already-told-you:keep-history` keeps a year.
 
 ## 3. Read the evidence
 
@@ -96,10 +96,10 @@ finding in each of A-D with its number, the hours per week they could win back, 
 history warning if any. Then the report path and these next commands:
 
 - `open <DIR>/report.html` - read the full report (macOS; on Linux `xdg-open`)
-- `/self-improve:install-skills` - review the drafted skills and install the ones you want
-- `/self-improve:apply-rules` - add the section B rules to the right CLAUDE.md (you see the diff first)
-- `/self-improve:automate` - set up one job from section D, with an approval step
-- `/self-improve:keep-history` - only if the history check warned you
+- `/already-told-you:install-skills` - review the drafted skills and install the ones you want
+- `/already-told-you:apply-rules` - add the section B rules to the right CLAUDE.md (you see the diff first)
+- `/already-told-you:automate` - set up one job from section D, with an approval step
+- `/already-told-you:keep-history` - only if the history check warned you
 
 Remind them: this was a dry run, nothing was installed or changed.
 
@@ -140,9 +140,9 @@ finding `title`, `count`, `quotes`). Quotes are verbatim, short (under 200 chara
                  "fixed": [{"title": "...", "detail": "before 6, after 0"}],
                  "better": [], "still": []},
   "summary": "Two or three sentences.",
-  "next": ["/self-improve:install-skills — review and install the drafted skills",
-           "/self-improve:apply-rules — add the section B rules to your CLAUDE.md",
-           "/self-improve:automate — set up one job from section D"]
+  "next": ["/already-told-you:install-skills — review and install the drafted skills",
+           "/already-told-you:apply-rules — add the section B rules to your CLAUDE.md",
+           "/already-told-you:automate — set up one job from section D"]
 }
 ```
 

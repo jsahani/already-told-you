@@ -33,11 +33,11 @@
     "D": [
       {"id": "d-weekly-report", "title": "Monday client status report", "count": 5, "per_week": 1, "hours_per_week_now": 1.5, "minutes_after": 10,
        "how": "schedule", "automation": "A skill that drafts the report from git log and the roadmap, run every Monday 9:00 by a Desktop scheduled task; you approve before it is sent.",
-       "steps": ["/self-improve:automate and pick this job", "Approve the draft each Monday before it goes to the client"],
+       "steps": ["/already-told-you:automate and pick this job", "Approve the draft each Monday before it goes to the client"],
        "quotes": [{"text": "write the weekly update for the client from what we did", "date": "2026-10-13", "project": "agency"}],
        "keywords": ["weekly update"]}
     ]
   },
   "summary": "Biggest win: make Claude prove a change works before calling it done.",
-  "next": ["/self-improve:install-skills — review and install the drafted skills", "/self-improve:apply-rules — add the section B rules to your CLAUDE.md", "/self-improve:automate — set up one job from section D"]
+  "next": ["/already-told-you:install-skills — review and install the drafted skills", "/already-told-you:apply-rules — add the section B rules to your CLAUDE.md", "/already-told-you:automate — set up one job from section D"]
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""self-improve extractor.
+"""Already Told You - extractor.
 
 Reads Claude Code session transcripts (~/.claude/projects/<project>/<session>.jsonl), streaming
 line by line, and writes a compact digest the model can analyse:
@@ -463,8 +463,8 @@ def read_cleanup_days(home=None):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="self-improve: digest your Claude Code history (read-only, local).")
-    ap.add_argument("--report-root", default=None, help="writes into <root>/<YYYY-MM-DD>/data (e.g. ~/claude-improve)")
+    ap = argparse.ArgumentParser(description="Already Told You: digest your Claude Code history (read-only, local).")
+    ap.add_argument("--report-root", default=None, help="writes into <root>/<YYYY-MM-DD>/data (e.g. ~/already-told-you)")
     ap.add_argument("--out", default=None, help="exact output folder (instead of --report-root)")
     ap.add_argument("--projects-dir", default=None, help="default: $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects")
     ap.add_argument("--project", default=None, help="only sessions started in this folder (path)")
@@ -694,7 +694,7 @@ def main(argv=None):
     }
     if cleanup is None or cleanup < 365:
         stats["history_warning"] = ("cleanupPeriodDays is %s, so Claude Code deletes transcripts older than %s days. "
-                                    "Run /self-improve:keep-history to keep a year." % (
+                                    "Run /already-told-you:keep-history to keep a year." % (
                                         "not set" if cleanup is None else cleanup, 30 if cleanup is None else cleanup))
 
     # ---- compare with a previous run
@@ -725,17 +725,26 @@ def main(argv=None):
     return 0
 
 
-def find_previous(base, current_name):
-    """Newest <base>/<YYYY-MM-DD>/findings.json older than the current report folder, or None."""
-    try:
-        names = sorted(n for n in os.listdir(base) if re.match(r"^\d{4}-\d{2}-\d{2}$", n) and n < current_name)
-    except Exception:
-        return None
-    for n in reversed(names):
-        p = os.path.join(base, n, "findings.json")
-        if os.path.isfile(p):
-            return p
-    return None
+# Reports written before the plugin was renamed (it was called self-improve) live here; they still count as
+# "previous" for the since-last-time comparison.
+LEGACY_REPORT_ROOT = "~/claude-improve"
+
+
+def find_previous(base, current_name, extra_bases=(LEGACY_REPORT_ROOT,)):
+    """Newest <base>/<YYYY-MM-DD>/findings.json dated before the current report folder, or None.
+
+    Looks in `base` and in each of `extra_bases` (the pre-rename report folder); the newest date wins."""
+    found = []
+    for b in [base] + [os.path.expanduser(x) for x in extra_bases]:
+        try:
+            names = [n for n in os.listdir(b) if re.match(r"^\d{4}-\d{2}-\d{2}$", n) and n < current_name]
+        except Exception:
+            continue
+        for n in names:
+            p = os.path.join(b, n, "findings.json")
+            if os.path.isfile(p):
+                found.append((n, p))
+    return max(found)[1] if found else None
 
 
 def compare_findings(path, analysed, corrections, err_groups):
@@ -826,7 +835,7 @@ def write_chunks(out, analysed, cap=60000):
 
 def build_digest(stats, analysed, tasks, ctx, corrections, errors, compare, chunk_files, max_chars, templates=()):
     S = []
-    S.append("# self-improve digest\n\nGenerated %s by extract.py %s. Scope: %s.\n" % (stats["generated"], VERSION, stats["scope"]))
+    S.append("# Already Told You - digest\n\nGenerated %s by extract.py %s. Scope: %s.\n" % (stats["generated"], VERSION, stats["scope"]))
     S.append("Quotes are the user's own messages (secrets, emails and long hex strings redacted). Times are estimates: "
              "active minutes = time between events with idle gaps capped at 5 minutes. A *delegated* session started with a long "
              "brief pasted or written by another agent; its first message may not be the user's own typing.\n")

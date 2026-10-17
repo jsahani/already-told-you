@@ -1,13 +1,14 @@
 {
-  "name": "self-improve",
+  "name": "already-told-you",
+  "displayName": "Already Told You",
   "version": "1.0.0",
-  "description": "Reads your Claude Code history and tells you where it keeps going wrong, what you keep re-explaining, which skills you should already have (and drafts them), and which jobs you repeat by hand (and how to automate them). Free. No account, no third-party service, no network calls of its own: a local extractor plus your own Claude Code session.",
+  "description": "Stop typing 'I already told you this' to Claude. Reads your Claude Code history and tells you where it keeps going wrong, what you keep re-explaining, which skills you should already have (and drafts them), and which jobs you repeat by hand (and how to automate them). Free. No account, no third-party service, no network calls of its own: a local extractor plus your own Claude Code session.",
   "author": {
     "name": "Jatin Sahani",
     "url": "https://www.instagram.com/jsahani.ai/"
   },
-  "homepage": "https://github.com/jsahani/claude-self-improve",
-  "repository": "https://github.com/jsahani/claude-self-improve",
+  "homepage": "https://github.com/jsahani/already-told-you",
+  "repository": "https://github.com/jsahani/already-told-you",
   "license": "MIT",
   "keywords": ["self-improvement", "history", "skills", "claude-md", "automation", "productivity", "free"]
 }

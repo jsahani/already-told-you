@@ -1,21 +1,23 @@
-# self-improve
+# Already Told You
 
-**A free Claude Code plugin that reads your own Claude Code history and tells you how to work better with it.**
+**Stop typing "I already told you this" to Claude.**
+
+A free Claude Code plugin that reads your own Claude Code history and tells you how to work better with it:
 
 1. **Where it keeps going wrong** - the corrections you make again and again, and the rule that stops each one.
 2. **Skills you should already have** - the requests you repeat, ranked by time spent, with first drafts **written for you**.
 3. **Jobs you repeat by hand** - how often, how many hours a week they cost, and how to automate each down to minutes.
 
-Plus: **what you keep explaining** (ready-to-paste CLAUDE.md rules). One command, a report on your screen, nothing changed until you say yes.
+Plus: **what you keep explaining** (ready-to-paste CLAUDE.md rules, so you never have to say it twice). One command, a report on your screen, nothing changed until you say yes.
 
 ## Before / after (example)
 
 **Before:** every week you type some version of *"deploy a preview and send me the link"*, then explain the same
 three steps, then correct Claude when it calls it done without checking the build.
 
-**After `/self-improve:run`:** the report shows *"Deploy a preview - 11 times, ~12 min each"* with your own quotes,
-a drafted `deploy-preview` skill that already contains those steps (and asks you before anything goes live), and a
-rule for CLAUDE.md: *"After any change, run the build and show the output before saying done."*
+**After `/already-told-you:run`:** the report shows *"Deploy a preview - 11 times, ~12 min each"* with your own
+quotes, a drafted `deploy-preview` skill that already contains those steps (and asks you before anything goes live),
+and a rule for CLAUDE.md: *"After any change, run the build and show the output before saying done."*
 Two more commands install the skill and add the rule.
 
 ## Install
@@ -23,28 +25,28 @@ Two more commands install the skill and add the rule.
 In your terminal:
 
 ```
-claude plugin marketplace add jsahani/claude-self-improve
-claude plugin install self-improve@jsahani
+claude plugin marketplace add jsahani/already-told-you
+claude plugin install already-told-you@jsahani
 ```
 
 Or paste this into Claude Code:
 
-> Install the self-improve plugin from github.com/jsahani/claude-self-improve
+> Install the Already Told You plugin from github.com/jsahani/already-told-you
 
-Then start Claude Code and type `/self-improve:run`.
+Then start Claude Code and type `/already-told-you:run`.
 
 ## The 5 commands
 
 | Command | What it does | Changes anything? |
 |---|---|---|
-| `/self-improve:run` | Reads your history (all projects, or `/self-improve:run here` for this one) and writes the report to `~/claude-improve/<date>/` | No - writes only into `~/claude-improve/` |
-| `/self-improve:install-skills` | Shows each drafted skill, you pick, you see the file, you approve, it installs for all projects or one project | Only what you approve; never overwrites a skill without asking |
-| `/self-improve:apply-rules` | Adds the approved rules to the right CLAUDE.md inside a marked block, after showing the diff | Only the marked block; re-running refreshes it, never duplicates |
-| `/self-improve:automate` | Sets up one repeated job with you: a skill, a skill + app connection, or a scheduled run | Only what you approve; anything that sends, publishes, pays or deletes waits for your yes |
-| `/self-improve:keep-history` | Keeps a year of history instead of 30 days (`cleanupPeriodDays: 365`) | Your `~/.claude/settings.json`, after a backup and your yes |
+| `/already-told-you:run` | Reads your history (all projects, or `/already-told-you:run here` for this one) and writes the report to `~/already-told-you/<date>/` | No - writes only into `~/already-told-you/` |
+| `/already-told-you:install-skills` | Shows each drafted skill, you pick, you see the file, you approve, it installs for all projects or one project | Only what you approve; never overwrites a skill without asking |
+| `/already-told-you:apply-rules` | Adds the approved rules to the right CLAUDE.md inside a marked block, after showing the diff | Only the marked block; re-running refreshes it, never duplicates |
+| `/already-told-you:automate` | Sets up one repeated job with you: a skill, a skill + app connection, or a scheduled run | Only what you approve; anything that sends, publishes, pays or deletes waits for your yes |
+| `/already-told-you:keep-history` | Keeps a year of history instead of 30 days (`cleanupPeriodDays: 365`) | Your `~/.claude/settings.json`, after a backup and your yes |
 
-Run `/self-improve:run` again in a few weeks: the report adds a **Since last time** section showing what got fixed
-and what is still happening.
+Run `/already-told-you:run` again in a few weeks: the report adds a **Since last time** section showing what got
+fixed and what is still happening.
 
 ## What happens to your history
 
@@ -53,8 +55,8 @@ and what is still happening.
   `scripts/`.
 - **The extractor runs on your computer.** It reads your session transcripts in `~/.claude/projects/` (read-only;
   nothing in them is changed or moved) and the `cleanupPeriodDays` value in `~/.claude/settings.json`.
-- **It writes only to `~/claude-improve/<date>/`** - `report.md`, `report.html`, `findings.json`, drafted skills,
-  and the digest the report was built from. Delete the folder whenever you like.
+- **It writes only to `~/already-told-you/<date>/`** - `report.md`, `report.html`, `findings.json`, drafted
+  skills, and the digest the report was built from. Delete the folder whenever you like.
 - **The analysis is done by your own Claude Code session.** Claude reads the extracted digest (trimmed excerpts of
   your own messages, up to ~120k characters, with API keys, tokens and email addresses masked) the same way it
   reads anything in a Claude Code session: through Anthropic, under the same terms as the rest of your Claude Code
@@ -64,9 +66,9 @@ and what is still happening.
 
 Claude Code deletes session transcripts after **30 days** by default (Anthropic's docs: transcripts are stored
 locally "for 30 days by default ... Adjust the period with `cleanupPeriodDays`"). Less history means a thinner
-report. `/self-improve:run` tells you the date of your oldest session and warns you if the setting is under a year.
-`/self-improve:keep-history` sets it to 365 days. Transcripts that are already gone cannot be brought back, so do
-this early.
+report. `/already-told-you:run` tells you the date of your oldest session and warns you if the setting is under a
+year. `/already-told-you:keep-history` sets it to 365 days. Transcripts that are already gone cannot be brought
+back, so do this early.
 
 ## Requirements
 
@@ -77,18 +79,18 @@ this early.
 ## Uninstall
 
 ```
-claude plugin uninstall self-improve@jsahani
+claude plugin uninstall already-told-you@jsahani
 ```
 
-Your reports stay in `~/claude-improve/` until you delete that folder. Skills and rules you installed stay until
-you remove them (delete the skill folder, or the block between `<!-- self-improve:start -->` and
-`<!-- self-improve:end -->`).
+Your reports stay in `~/already-told-you/` until you delete that folder. Skills and rules you installed stay until
+you remove them (delete the skill folder, or the block between `<!-- already-told-you:start -->` and
+`<!-- already-told-you:end -->`).
 
 ## For the curious
 
 - `scripts/extract.py` streams every transcript line by line (about 10 seconds for 2.4 GB), keeps only your own
   messages, finds corrections, interrupts, tool errors, repeated requests and repeated explanations, and writes a
-  digest capped to fit one model context. On large histories `/self-improve:run` splits the detail across
+  digest capped to fit one model context. On large histories `/already-told-you:run` splits the detail across
   subagents.
 - `scripts/render.py` turns the findings into `report.md` and a single self-contained `report.html`.
 - Tests: `python3 -m unittest discover -s tests`

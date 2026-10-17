@@ -1,4 +1,4 @@
-"""Tests for the self-improve scripts. Synthetic data only, everything inside a temporary fake HOME.
+"""Tests for the Already Told You scripts. Synthetic data only, everything inside a temporary fake HOME.
 
 Run: python3 -m unittest discover -s tests -v
 """
@@ -32,7 +32,7 @@ def run(fn, argv):
 
 class FakeHome(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="self-improve-test-")
+        self.tmp = tempfile.mkdtemp(prefix="already-told-you-test-")
         self.old_home = os.environ.get("HOME")
         self.old_cfg = os.environ.pop("CLAUDE_CONFIG_DIR", None)
         os.environ["HOME"] = self.tmp
@@ -117,11 +117,11 @@ def make_history(home):
 class TestExtract(FakeHome):
     def test_full_run(self):
         make_history(self.tmp)
-        code, out = run(extract.main, ["--report-root", os.path.join(self.tmp, "claude-improve")])
+        code, out = run(extract.main, ["--report-root", os.path.join(self.tmp, "already-told-you")])
         self.assertEqual(code, 0, out)
-        dirs = os.listdir(os.path.join(self.tmp, "claude-improve"))
+        dirs = os.listdir(os.path.join(self.tmp, "already-told-you"))
         self.assertEqual(len(dirs), 1)
-        data = os.path.join(self.tmp, "claude-improve", dirs[0], "data")
+        data = os.path.join(self.tmp, "already-told-you", dirs[0], "data")
         st = json.load(open(os.path.join(data, "stats.json")))
         digest = open(os.path.join(data, "digest.md"), encoding="utf-8").read()
         self.assertEqual(st["sessions_total"], 6)
@@ -156,7 +156,7 @@ class TestExtract(FakeHome):
 
     def test_compare_previous(self):
         make_history(self.tmp)
-        root = os.path.join(self.tmp, "claude-improve")
+        root = os.path.join(self.tmp, "already-told-you")
         os.makedirs(os.path.join(root, "2026-10-05"))
         prev = {"generated": "2026-10-05", "sections": {"A": [{"id": "a1", "title": "Build fails", "count": 2, "quotes": [], "keywords": ["build fails"]}],
                                                         "B": [{"id": "b1", "title": "pnpm", "count": 2, "quotes": [], "keywords": ["never-said-phrase"]}]}}
@@ -169,6 +169,23 @@ class TestExtract(FakeHome):
         rows = {r["id"]: r for r in cmp_["findings"]}
         self.assertEqual(rows["a1"]["status"], "still happening")
         self.assertEqual(rows["b1"]["after"], 0)
+
+    def test_compare_finds_report_from_before_the_rename(self):
+        make_history(self.tmp)
+        legacy = os.path.join(self.tmp, "claude-improve", "2026-10-05")   # ~/claude-improve under the fake HOME
+        os.makedirs(legacy)
+        json.dump({"generated": "2026-10-05", "sections": {"A": [{"id": "a1", "title": "Build fails", "count": 2, "quotes": [],
+                                                                  "keywords": ["build fails"]}]}},
+                  open(os.path.join(legacy, "findings.json"), "w"))
+        code, out = run(extract.main, ["--report-root", os.path.join(self.tmp, "already-told-you")])
+        self.assertEqual(code, 0)
+        self.assertIn(os.path.join("claude-improve", "2026-10-05", "findings.json"), out)
+        # a newer report in the new folder wins over the old one
+        newer = os.path.join(self.tmp, "already-told-you", "2026-10-06")
+        os.makedirs(newer)
+        json.dump({"generated": "2026-10-06", "sections": {}}, open(os.path.join(newer, "findings.json"), "w"))
+        self.assertEqual(extract.find_previous(os.path.join(self.tmp, "already-told-you"), "2026-10-17"),
+                         os.path.join(newer, "findings.json"))
 
     def test_respects_claude_config_dir(self):
         make_history(self.tmp)
@@ -212,6 +229,22 @@ class TestExtract(FakeHome):
 
 
 class TestRender(FakeHome):
+    def test_old_findings_render_with_new_names(self):
+        f = json.load(open(os.path.join(FIX, "findings.sample.json")))
+        f["next"] = ["/self-improve:install-skills — review and install the drafted skills"]
+        f["sections"]["D"][0]["steps"] = ["/self-improve:automate and pick this job", "logs in ~/claude-improve/automation/"]
+        p = os.path.join(self.tmp, "old.json")
+        json.dump(f, open(p, "w"))
+        out = os.path.join(self.tmp, "r")
+        self.assertEqual(run(render.main, ["--findings", p, "--stats", os.path.join(FIX, "stats.sample.json"), "--out", out])[0], 0)
+        for name in ("report.html", "report.md"):
+            text = open(os.path.join(out, name), encoding="utf-8").read()
+            self.assertNotIn("self-improve", text)
+            self.assertNotIn("claude-improve", text)
+            self.assertIn("/already-told-you:install-skills", text)
+            self.assertIn("Made with", text)
+            self.assertIn("Already Told You", text)
+
     def test_render_sample(self):
         out = os.path.join(self.tmp, "r")
         code, msg = run(render.main, ["--findings", os.path.join(FIX, "findings.sample.json"), "--stats", os.path.join(FIX, "stats.sample.json"), "--out", out])
@@ -242,6 +275,16 @@ class TestRender(FakeHome):
 
 
 class TestApplyRules(FakeHome):
+    def test_block_from_before_the_rename_is_replaced(self):
+        target = os.path.join(self.tmp, "CLAUDE.md")
+        open(target, "w").write("# Mine\n\n<!-- self-improve:start -->\n- old rule\n<!-- self-improve:end -->\n\nAfter.\n")
+        run(apply_rules.main, ["--write", "--findings", os.path.join(FIX, "findings.sample.json"), "--target", target, "--ids", "b-stack"])
+        text = open(target).read()
+        self.assertNotIn("self-improve", text)
+        self.assertNotIn("old rule", text)
+        self.assertEqual(text.count(apply_rules.START), 1)
+        self.assertTrue(text.startswith("# Mine\n\n") and text.endswith("\nAfter.\n"))
+
     def test_block_is_refreshed_not_duplicated(self):
         target = os.path.join(self.tmp, "proj", "CLAUDE.md")
         os.makedirs(os.path.dirname(target))
@@ -267,7 +310,7 @@ class TestApplyRules(FakeHome):
 
 class TestInstallSkill(FakeHome):
     def make_draft(self, name="deploy-preview", desc="Deploys a preview. Use when the user asks to \"deploy a preview\"."):
-        d = os.path.join(self.tmp, "claude-improve", "2026-10-17", "skills", name)
+        d = os.path.join(self.tmp, "already-told-you", "2026-10-17", "skills", name)
         os.makedirs(d)
         open(os.path.join(d, "SKILL.md"), "w").write("---\nname: %s\ndescription: %s\n---\n\n# x\n" % (name, desc))
         return d
@@ -288,7 +331,7 @@ class TestInstallSkill(FakeHome):
 
     def test_list(self):
         self.make_draft()
-        code, out = run(install_skill.main, ["--list", "--report", os.path.join(self.tmp, "claude-improve", "2026-10-17")])
+        code, out = run(install_skill.main, ["--list", "--report", os.path.join(self.tmp, "already-told-you", "2026-10-17")])
         self.assertEqual(code, 0)
         self.assertIn("deploy-preview", out)
 
@@ -310,7 +353,7 @@ class TestKeepHistory(FakeHome):
         self.assertEqual(code, 0)
         s = json.load(open(self.settings()))
         self.assertEqual(s, {"model": "opus", "permissions": {"allow": ["Read"]}, "cleanupPeriodDays": 365})
-        backups = [n for n in os.listdir(os.path.dirname(self.settings())) if n.startswith("settings.json.bak-self-improve-")]
+        backups = [n for n in os.listdir(os.path.dirname(self.settings())) if n.startswith("settings.json.bak-already-told-you-")]
         self.assertEqual(len(backups), 1)
 
     def test_never_lowers_and_stops_on_bad_json(self):

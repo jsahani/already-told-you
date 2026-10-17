@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Install one drafted skill folder from a self-improve report.
+"""Install one drafted skill folder from an Already Told You report.
 
-  python3 install_skill.py --list  --report ~/claude-improve/2026-10-17
+  python3 install_skill.py --list  --report ~/already-told-you/2026-10-17
   python3 install_skill.py --check --src <report>/skills/<name> --dest ~/.claude/skills
   python3 install_skill.py --install --src <report>/skills/<name> --dest ~/.claude/skills [--force]
 

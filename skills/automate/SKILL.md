@@ -1,22 +1,22 @@
 ---
 name: automate
-description: Picks one repeated job from section D of your self-improve report and sets up its automation with you - a skill, a skill plus an app connection (MCP), or a scheduled run - always ending with one human approval step before anything is sent, published, paid or deleted.
+description: Picks one repeated job from section D of your Already Told You report and sets up its automation with you - a skill, a skill plus an app connection (MCP), or a scheduled run - always ending with one human approval step before anything is sent, published, paid or deleted.
 argument-hint: "[job number or name]"
 disable-model-invocation: true
 allowed-tools:
-  - Read(~/claude-improve/**)
+  - Read(~/already-told-you/**)
   - Glob
   - Bash(python3 ${CLAUDE_PLUGIN_ROOT}/scripts/install_skill.py --check *)
   - Bash(plutil -lint *)
 ---
 
-# self-improve: automate one job
+# Already Told You: automate one job
 
 Work through one job at a time, in plain English, and confirm each step with the user. Nothing outside
-`~/claude-improve/` is created or changed without a yes.
+`~/already-told-you/` is created or changed without a yes.
 
-1. **Pick the job.** Read the newest `~/claude-improve/<YYYY-MM-DD>/findings.json` (Glob). None → "Run
-   /self-improve:run first" and stop. Show section D as a numbered list: title, hours/week now → minutes after,
+1. **Pick the job.** Read the newest `~/already-told-you/<YYYY-MM-DD>/findings.json` (Glob). None → "Run
+   /already-told-you:run first" and stop. Show section D as a numbered list: title, hours/week now → minutes after,
    suggested `how`. Use `$ARGUMENTS` if it names one; otherwise ask which.
 2. **Agree the shape.** Restate the job as: trigger (when / who starts it) → what Claude does → what comes out →
    where the human approves. Confirm the automation type using the options below; change it if the user prefers.
@@ -42,7 +42,7 @@ Work through one job at a time, in plain English, and confirm each step with the
    - `schedule (routine)`: give the exact line to type, e.g. `/schedule every Monday at 9am, run /<skill-name> ...`,
      and say it runs in the cloud on a fresh copy of a GitHub repo with connectors - no local files.
    - `schedule (cron)` on macOS: fill in the launchd template below. Find the claude path with `command -v claude`
-     (ask before running). Write the filled plist to `~/claude-improve/automation/<label>.plist` first and show it.
+     (ask before running). Write the filled plist to `~/already-told-you/automation/<label>.plist` first and show it.
      After a yes, copy it to `~/Library/LaunchAgents/` and load it with
      `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/<label>.plist` (each command asks for permission).
      `--allowedTools` in it must list only what the job needs - never `--dangerously-skip-permissions`.
@@ -86,7 +86,7 @@ approval step (the run prepares a draft or a preview; the user says yes before i
 
 Fill in every `{{...}}` and save it as `<label>.plist`:
 
-- `{{label}}` - e.g. `com.self-improve.weekly-client-update`
+- `{{label}}` - e.g. `com.already-told-you.weekly-client-update`
 - `{{claude}}` - absolute path printed by `command -v claude`
 - `{{skill}}` - the installed skill name
 - `{{tools}}` - only what the job needs, e.g. `Read,Write(~/drafts/**),Bash(git log *)`
@@ -116,8 +116,8 @@ The first line of the file must be the XML declaration, followed by the Apple pl
     <key>Hour</key><integer>{{hour}}</integer>
     <key>Minute</key><integer>{{minute}}</integer>
   </dict>
-  <key>StandardOutPath</key><string>{{home}}/claude-improve/automation/{{label}}.log</string>
-  <key>StandardErrorPath</key><string>{{home}}/claude-improve/automation/{{label}}.log</string>
+  <key>StandardOutPath</key><string>{{home}}/already-told-you/automation/{{label}}.log</string>
+  <key>StandardErrorPath</key><string>{{home}}/already-told-you/automation/{{label}}.log</string>
 </dict>
 </plist>
 ```

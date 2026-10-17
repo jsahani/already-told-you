@@ -49,11 +49,11 @@ def main(argv=None):
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if exists:
-        backup = path + ".bak-self-improve-" + dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup = path + ".bak-already-told-you-" +dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         shutil.copy2(path, backup)
         print("backup: %s" % backup)
     data["cleanupPeriodDays"] = a.days
-    tmp = path + ".tmp-self-improve"
+    tmp = path + ".tmp-already-told-you"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)
         fh.write("\n")

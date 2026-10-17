@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""self-improve renderer: findings.json (+ stats.json) -> report.md and report.html.
+"""Already Told You - renderer: findings.json (+ stats.json) -> report.md and report.html.
 
 The HTML is one self-contained file (inline CSS, no fonts or scripts from the internet).
 Python 3 standard library only.
@@ -23,6 +23,18 @@ SECTION_META = {
 def load(path):
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+# The plugin was called "self-improve" before it became "Already Told You". Findings written by that version
+# name the old commands and folder; show them under the current names.
+LEGACY_NAMES = (("/self-improve:", "/already-told-you:"), ("~/claude-improve/", "~/already-told-you/"))
+
+
+def modernise(f):
+    text = json.dumps(f, ensure_ascii=False)
+    for old, new in LEGACY_NAMES:
+        text = text.replace(old, new)
+    return json.loads(text)
 
 
 def num(v, default=0):
@@ -66,7 +78,7 @@ def quotes_md(item):
 def render_md(f, st):
     L = []
     L.append("# Your Claude Code, reviewed\n\n")
-    L.append("*%s · %s · made by self-improve (local extractor + your own Claude Code session) on %s. Dry run: nothing was installed or changed.*\n\n" % (
+    L.append("*%s · %s · made by Already Told You (local extractor + your own Claude Code session) on %s. Dry run: nothing was installed or changed.*\n\n" % (
         f.get("scope") or st.get("scope", "all projects"), "%s → %s" % (st.get("analysed_from"), st.get("analysed_to")), f.get("generated")))
     if f.get("headline"):
         L.append("**%s**\n\n" % f["headline"])
@@ -124,7 +136,7 @@ def render_md(f, st):
         for n in f["next"]:
             L.append("- %s\n" % n)
         L.append("\n")
-    L.append("---\nMade with self-improve, a free Claude Code plugin by @jsahani.ai. Dry run: nothing was installed or changed.\n")
+    L.append("---\nMade with Already Told You, a free Claude Code plugin by @jsahani.ai. Dry run: nothing was installed or changed.\n")
     return "".join(L)
 
 
@@ -261,7 +273,7 @@ def render_html(f, st):
     H = []
     H.append('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">')
     H.append("<title>Your Claude Code, reviewed · %s</title><style>%s</style></head><body><div class=\"wrap\">" % (e(f.get("generated")), CSS))
-    H.append('<div class="eyebrow">self-improve · report · %s</div>' % e(f.get("generated")))
+    H.append('<div class="eyebrow">Already Told You · report · %s</div>' % e(f.get("generated")))
     H.append("<h1>Your Claude Code,<br>reviewed.</h1>")
     if f.get("headline"):
         H.append('<p class="lede">%s</p>' % e(f["headline"]))
@@ -315,8 +327,8 @@ def render_html(f, st):
         cmd, _, rest = str(n).partition(" — ")
         H.append("<code>%s%s</code>" % (e(cmd), (" <span>— %s</span>" % e(rest)) if rest else ""))
     H.append("</div>")
-    H.append("<footer>Made by <b>self-improve</b>, a free Claude Code plugin by @jsahani.ai: a local extractor plus "
-             "your own Claude Code session · no account, no third-party service · "
+    H.append("<footer>Made with <b>Already Told You</b>, a free Claude Code plugin by @jsahani.ai · "
+             "a local extractor plus your own Claude Code session · no account, no third-party service · "
              "dry run: nothing was installed or changed · %s sessions, %s MB of history read</footer>" % (
                  e(st.get("sessions_total")), e(round(num(st.get("bytes_read")) / 1e6))))
     H.append("</div></body></html>")
@@ -324,12 +336,12 @@ def render_html(f, st):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Render self-improve findings to report.md + report.html")
+    ap = argparse.ArgumentParser(description="Render Already Told You findings to report.md + report.html")
     ap.add_argument("--findings", required=True)
     ap.add_argument("--stats", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
-    f = load(os.path.expanduser(a.findings))
+    f = modernise(load(os.path.expanduser(a.findings)))
     st = load(os.path.expanduser(a.stats))
     problems = validate(f)
     if problems:
