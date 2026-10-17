@@ -10,7 +10,7 @@ What leaves the computer:
   --plan    nothing.
   --search  one request: https://skills.sh/api/search?q=<the cleaned keywords>&limit=<n>
   --vet     for each candidate (public names taken from the search results, nothing from the user):
-            api.github.com/repos/<owner>/<repo>, .../branches/<branch>, .../git/trees/<commit>,
+            api.github.com/repos/<owner>/<repo> and .../git/trees/<branch> (cached for the day per repo),
             raw.githubusercontent.com for the files of that one skill folder, and the security scan results skills.sh
             publishes for it (https://skills.sh/tele/audit?source=<owner/repo>&skills=<skill>).
 
@@ -18,7 +18,7 @@ Keywords must be short and generic. The cleaner refuses anything that could iden
 URLs, emails, @handles, long numbers, key-like strings, the user's login name, the names of their projects (read
 locally from the Claude Code history folder) and any word given with --deny. It never sends history text.
 
---vet downloads the skill folder (exact commit) to ~/already-told-you/skill-search/<date>/<owner>__<repo>__<skill>/
+--vet downloads the skill folder to ~/already-told-you/skill-search/<date>/<owner>__<repo>__<skill>/
 so Claude can read the real SKILL.md and scripts, and so install_skill.py can install exactly the copy that was
 checked. Standard library only. No telemetry.
 """
@@ -277,7 +277,10 @@ def frontmatter(text):
 
 
 def verdict(c):
-    """'recommend' / 'caution' / 'avoid' from the numbers and the scan. Claude still reads the files and decides."""
+    """'recommend' / 'caution' / 'avoid' from the numbers and the scan, or 'not checked' when GitHub could not be
+    reached (that says nothing about the skill). Claude still reads the files and decides."""
+    if c.get("error"):
+        return "not checked", ["not checked: %s" % c["error"]]
     reasons, level = [], 0
     inst, stars = c.get("installs"), c.get("stars")
     if inst is None:
@@ -347,6 +350,30 @@ def find_skill_path(tree, skill, repo="", read=None):
     return None
 
 
+def repo_info(owner, repo, out_root):
+    """(repo JSON, file tree, branch) with 2 GitHub API calls, cached for the day in <out_root>/.github-cache/ so
+    several skills from one repo, or a second run, do not spend the 60-per-hour limit again."""
+    cache = os.path.join(out_root, ".github-cache", "%s__%s.json" % (owner, repo))
+    try:
+        with open(cache, encoding="utf-8") as fh:
+            d = json.load(fh)
+        return d["repo"], d["tree"], d["branch"]
+    except (OSError, ValueError, KeyError):
+        pass
+    r = get_json("%s/repos/%s/%s" % (GITHUB_API, owner, repo))
+    branch = r.get("default_branch") or "main"
+    t = get_json("%s/repos/%s/%s/git/trees/%s?recursive=1" % (GITHUB_API, owner, repo, urllib.parse.quote(branch)))
+    keep = {k: r.get(k) for k in ("stargazers_count", "archived", "fork", "license", "created_at", "pushed_at", "default_branch")}
+    tree = [{k: x.get(k) for k in ("path", "type", "size")} for x in (t.get("tree") or [])]
+    try:
+        os.makedirs(os.path.dirname(cache), exist_ok=True)
+        with open(cache, "w", encoding="utf-8") as fh:
+            json.dump({"repo": keep, "tree": tree, "branch": branch}, fh)
+    except OSError:
+        pass
+    return keep, tree, branch
+
+
 def vet_one(ref, out_root, search_info=None):
     m = re.match(r"^([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)@([A-Za-z0-9_.:-]+)$", ref)
     if not m:
@@ -360,7 +387,7 @@ def vet_one(ref, out_root, search_info=None):
     c.setdefault("installs", None)
     c.setdefault("same_name_elsewhere", 0)
     try:
-        r = get_json("%s/repos/%s/%s" % (GITHUB_API, owner, repo))
+        r, tree, ref_name = repo_info(owner, repo, out_root)
         c["stars"] = int(r.get("stargazers_count") or 0)
         c["archived"] = bool(r.get("archived"))
         c["fork"] = bool(r.get("fork"))
@@ -369,15 +396,14 @@ def vet_one(ref, out_root, search_info=None):
         c["created"], c["last_push"] = created, (r.get("pushed_at") or "")[:10]
         if created:
             c["repo_age_days"] = (dt.date.today() - dt.date.fromisoformat(created)).days
-        branch = r.get("default_branch") or "main"
-        b = get_json("%s/repos/%s/%s/branches/%s" % (GITHUB_API, owner, repo, urllib.parse.quote(branch)))
-        commit = b["commit"]["sha"]
-        c["commit"] = commit
-        t = get_json("%s/repos/%s/%s/git/trees/%s?recursive=1" % (GITHUB_API, owner, repo, commit))
-        tree = t.get("tree") or []
+        c["branch"] = ref_name
     except urllib.error.HTTPError as e:
         c["stars"] = c.get("stars")
-        c["error"] = "GitHub said %s%s" % (e.code, " (rate limit: try again in an hour)" if e.code == 403 else "")
+        c["error"] = "GitHub said %s" % e.code
+        if e.code in (403, 429):
+            reset = (e.headers or {}).get("X-RateLimit-Reset") if hasattr(e, "headers") else None
+            mins = max(1, int((int(reset) - dt.datetime.now().timestamp()) / 60) + 1) if reset and str(reset).isdigit() else 60
+            c["error"] = "GitHub's hourly limit for unsigned lookups is used up; retry in about %d minutes" % mins
         c["verdict"], c["reasons"] = verdict(c)
         return c
     except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
@@ -385,9 +411,10 @@ def vet_one(ref, out_root, search_info=None):
         c["error"] = "could not reach GitHub: %s" % e
         c["verdict"], c["reasons"] = verdict(c)
         return c
+    commit = ref_name
 
     path = find_skill_path(tree, skill, repo, lambda p: http_get(
-        "%s/%s/%s/%s/%s" % (RAW, owner, repo, commit, urllib.parse.quote(p)), accept="*/*").decode("utf-8"))
+        "%s/%s/%s/%s/%s" % (RAW, owner, repo, urllib.parse.quote(commit), urllib.parse.quote(p)), accept="*/*").decode("utf-8"))
     flags, files = {}, []
     if path:
         folder = os.path.dirname(path)
@@ -404,7 +431,7 @@ def vet_one(ref, out_root, search_info=None):
                 break
             rel = x["path"][len(folder) + 1:] if folder else x["path"]
             try:
-                data = http_get("%s/%s/%s/%s/%s" % (RAW, owner, repo, commit, urllib.parse.quote(x["path"])), accept="*/*")
+                data = http_get("%s/%s/%s/%s/%s" % (RAW, owner, repo, urllib.parse.quote(commit), urllib.parse.quote(x["path"])), accept="*/*")
             except (urllib.error.URLError, OSError):
                 complete = False
                 continue
@@ -512,7 +539,8 @@ def main(argv=None):
     report = [vet_one(ref, out_root, known.get(ref)) for ref in a.vet[:6]]
     if len(a.vet) > 6:
         print("note: only the first 6 candidates were checked")
-    path = os.path.join(out_root, "vetted.json")
+    path = os.path.join(out_root, "vetted-%s-%s.json" % (dt.datetime.now().strftime("%H%M%S"),
+                                                          re.sub(r"[^a-z0-9]+", "-", a.vet[0].lower()).strip("-")[:60]))
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2)
     slim = []

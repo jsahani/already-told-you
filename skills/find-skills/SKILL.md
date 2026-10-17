@@ -69,8 +69,11 @@ copies with the same name). Run
 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skill_search.py --vet <owner/repo@skill> [...] --results <saved search file>`.
 
 For each candidate it reports GitHub stars, repo age and last update, licence, whether the publisher is a known
-one, the security scans skills.sh publishes, and it downloads that one skill folder (the exact commit) to
-`local_copy`, scanning every file. It gives a `verdict` (recommend / caution / avoid) with `reasons`. The numbers
+one, the security scans skills.sh publishes, and it downloads that one skill folder to `local_copy`, scanning
+every file. It gives a `verdict` (recommend / caution / avoid) with `reasons`. **Run `--vet` one call at a time,
+never several in parallel**: GitHub allows about 60 unsigned lookups an hour (each new repo costs 2; repos are
+cached for the day). `not checked` means GitHub could not be reached or the hourly limit is used up: it says
+nothing about the skill, so never call it unsafe; say when to retry and leave that item unmarked. The numbers
 use these rules: prefer 1,000+ installs and be wary under 100; trust known publishers (anthropics, vercel-labs,
 microsoft, github ...) more than unknown ones; be wary under 100 GitHub stars; a huge install count next to very
 few stars, or a repo only weeks old, suggests the count is inflated.

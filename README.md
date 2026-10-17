@@ -104,8 +104,8 @@ you remove them (delete the skill folder, or the block between `<!-- already-tol
 - `scripts/render.py` turns the findings into `report.md` and a single self-contained `report.html`.
 - `scripts/skill_search.py` cleans the search keywords, queries skills.sh, and vets each result: GitHub stars, repo
   age, the security scans skills.sh publishes, and a scan of every file in the skill folder for remote code, secret
-  requests, broad permissions, data sent out and hidden instructions. It downloads the exact commit it checked, so
-  the copy you install is the copy that was read. (It calls the public skills.sh search directly instead of
+  requests, broad permissions, data sent out and hidden instructions. It keeps the copy it downloaded and checked,
+  so the recommended install puts in exactly the files that were read. (It calls the public skills.sh search directly instead of
   `npx skills find`, which needs Node and also sends a usage ping.)
 - Tests: `python3 -m unittest discover -s tests`
 

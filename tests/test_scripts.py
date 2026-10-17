@@ -484,9 +484,7 @@ class TestSkillSearch(FakeHome):
         def fake_json(url):
             self.sent.append(url)
             if url.endswith("/repos/acme/skills"):
-                return {"stargazers_count": 5000, "default_branch": "main", "created_at": "2025-01-01T00:00:00Z", "license": {"spdx_id": "MIT"}}
-            if "/branches/" in url:
-                return {"commit": {"sha": "abc123"}}
+                return {"stargazers_count": 5000, "default_branch": "abc123", "created_at": "2025-01-01T00:00:00Z", "license": {"spdx_id": "MIT"}}
             if "/git/trees/abc123" in url:
                 return {"tree": [{"path": p, "type": "blob", "size": len(b)} for p, b in files.items()] +
                                 [{"path": "skills/webapp-testing/../../escape", "type": "blob", "size": 1}]}
@@ -513,6 +511,28 @@ class TestSkillSearch(FakeHome):
         dest = os.path.join(self.tmp, ".claude", "skills")
         self.assertEqual(run(install_skill.main, ["--install", "--src", c["local_copy"], "--dest", dest])[0], 0)
         self.assertTrue(os.path.isfile(os.path.join(dest, "webapp-testing", "scripts", "run.sh")))
+        # a second skill from the same repo reuses the cached repo lookup: no new GitHub API calls
+        api_calls = len([u for u in self.sent if "api.github.com" in u])
+        skill_search.vet_one("acme/skills@other", out, {"installs": 2000})
+        self.assertEqual(len([u for u in self.sent if "api.github.com" in u]), api_calls)
+
+    def test_rate_limit_is_not_a_safety_verdict(self):
+        import urllib.error
+
+        def limited(url):
+            raise urllib.error.HTTPError(url, 403, "rate limited", {"X-RateLimit-Reset": "0"}, None)
+        skill_search.get_json = limited
+        c = skill_search.vet_one("acme/skills@webapp-testing", os.path.join(self.tmp, "v"), {"installs": 5000})
+        self.assertEqual(c["verdict"], "not checked")
+        self.assertIn("retry", c["reasons"][0])
+        self.assertNotIn("SKILL.md not found", " ".join(c["reasons"]))
+
+    def test_each_vet_run_keeps_its_own_file(self):
+        skill_search.get_json = lambda url: {"skills": []}
+        out = os.path.join(self.tmp, "v")
+        run(skill_search.main, ["--vet", "bad ref", "--out", out])
+        run(skill_search.main, ["--vet", "other bad", "--out", out])
+        self.assertEqual(len([n for n in os.listdir(out) if n.startswith("vetted-")]), 2)
 
     def test_find_skill_path(self):
         tree = lambda *ps: [{"path": p, "type": "blob"} for p in ps]  # noqa: E731
