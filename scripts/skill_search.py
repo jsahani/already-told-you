@@ -56,7 +56,7 @@ backend server client clients blog notes demo tmp temp project projects worker w
 design data assets home main dev build tools tool utils lib code repo repos work playground sandbox examples
 """.split())
 
-MAX_FILES = 60
+MAX_FILES = 150
 MAX_TOTAL_BYTES = 3 * 1024 * 1024
 
 
@@ -279,8 +279,11 @@ def frontmatter(text):
 def verdict(c):
     """'recommend' / 'caution' / 'avoid' from the numbers and the scan. Claude still reads the files and decides."""
     reasons, level = [], 0
-    inst, stars = c.get("installs", 0), c.get("stars")
-    if inst < 100:
+    inst, stars = c.get("installs"), c.get("stars")
+    if inst is None:
+        reasons.append("install count unknown (vetted without search results)")
+        inst = 0
+    elif inst < 100:
         reasons.append("under 100 installs")
         level = max(level, 1)
     elif inst < 1000:
@@ -311,21 +314,37 @@ def verdict(c):
             reasons.append("%s risk: %s (%s)" % (SEVERITY_NAME[f["severity"]], label, ", ".join(
                 "%s:%s" % (h["file"], h["line"]) for h in f["hits"][:2])))
             level = max(level, f["severity"])
+    for scanner, risk in sorted((c.get("third_party_scans") or {}).items()):
+        if str(risk).lower() in ("high", "critical"):
+            reasons.append("note: the %s scan on skills.sh rates it %s (scanners often disagree; read the files)" % (scanner, risk))
     if c.get("reputable_owner"):
         reasons.insert(0, "known publisher")
     return ["recommend", "caution", "avoid"][level], reasons
 
 
-def find_skill_path(tree, skill):
+def find_skill_path(tree, skill, repo="", read=None):
+    """Path of the skill's SKILL.md in the repo tree. read(path) -> text is used last, to match the name: field."""
     blobs = [t["path"] for t in tree if t.get("type") == "blob"]
-    mds = [p for p in blobs if p.endswith("SKILL.md")]
-    exact = [p for p in mds if os.path.basename(os.path.dirname(p)).lower() == skill.lower()]
+    mds = [p for p in blobs if os.path.basename(p) == "SKILL.md"]
+    s = skill.lower()
+    exact = [p for p in mds if os.path.basename(os.path.dirname(p)).lower() == s]
     if exact:
         return sorted(exact, key=len)[0]
+    if "SKILL.md" in mds and (s == repo.lower() or s in repo.lower() or repo.lower() in s):
+        return "SKILL.md"
     if len(mds) == 1:
         return mds[0]
-    loose = [p for p in mds if skill.lower() in p.lower()]
-    return sorted(loose, key=len)[0] if loose else None
+    loose = [p for p in mds if s in p.lower()]
+    if loose:
+        return sorted(loose, key=len)[0]
+    if read:
+        for p in sorted(mds, key=len)[:8]:
+            try:
+                if frontmatter(read(p)).get("name", "").lower() == s:
+                    return p
+            except (urllib.error.URLError, OSError, UnicodeDecodeError):
+                continue
+    return None
 
 
 def vet_one(ref, out_root, search_info=None):
@@ -338,7 +357,7 @@ def vet_one(ref, out_root, search_info=None):
               "reputable_owner": owner.lower() in REPUTABLE_OWNERS,
               "github": "https://github.com/%s/%s" % (owner, repo),
               "url": c.get("url") or "https://skills.sh/%s/%s/%s" % (owner, repo, skill)})
-    c.setdefault("installs", 0)
+    c.setdefault("installs", None)
     c.setdefault("same_name_elsewhere", 0)
     try:
         r = get_json("%s/repos/%s/%s" % (GITHUB_API, owner, repo))
@@ -367,7 +386,8 @@ def vet_one(ref, out_root, search_info=None):
         c["verdict"], c["reasons"] = verdict(c)
         return c
 
-    path = find_skill_path(tree, skill)
+    path = find_skill_path(tree, skill, repo, lambda p: http_get(
+        "%s/%s/%s/%s/%s" % (RAW, owner, repo, commit, urllib.parse.quote(p)), accept="*/*").decode("utf-8"))
     flags, files = {}, []
     if path:
         folder = os.path.dirname(path)

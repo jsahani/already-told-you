@@ -514,6 +514,16 @@ class TestSkillSearch(FakeHome):
         self.assertEqual(run(install_skill.main, ["--install", "--src", c["local_copy"], "--dest", dest])[0], 0)
         self.assertTrue(os.path.isfile(os.path.join(dest, "webapp-testing", "scripts", "run.sh")))
 
+    def test_find_skill_path(self):
+        tree = lambda *ps: [{"path": p, "type": "blob"} for p in ps]  # noqa: E731
+        self.assertEqual(skill_search.find_skill_path(tree("README.md", "SKILL.md", "core/SKILL.md", "ci/SKILL.md"),
+                                                      "playwright-skill", "playwright-skill"), "SKILL.md")   # skill at the repo root
+        self.assertEqual(skill_search.find_skill_path(tree("skills/a/SKILL.md", "skills/pdf/SKILL.md"), "pdf", "skills"),
+                         "skills/pdf/SKILL.md")
+        texts = {"x/SKILL.md": "---\nname: other\n---\n", "y/SKILL.md": "---\nname: tidy-docs\n---\n"}
+        self.assertEqual(skill_search.find_skill_path(tree(*texts), "tidy-docs", "kit", texts.get), "y/SKILL.md")
+        self.assertIsNone(skill_search.find_skill_path(tree("a/SKILL.md", "b/SKILL.md"), "nope", "kit"))
+
     def test_vet_rejects_bad_refs(self):
         self.no_network()
         self.assertIn("error", skill_search.vet_one("not a ref", self.tmp))
