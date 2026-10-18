@@ -80,7 +80,7 @@ def main(argv=None):
     os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
     with open(target, "w", encoding="utf-8") as fh:
         fh.write(new)
-    print("\nwrote %s (%d rules in the already-told-you block)" % (target, len(rules)))
+    print("\nwrote %s (%d %s in the already-told-you block)" % (target, len(rules), "rule" if len(rules) == 1 else "rules"))
     return 0
 
 
